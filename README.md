@@ -31,3 +31,4 @@
   * [Vue官网](https://vuejs.org/) Vue的官网也提供有不错的详细从0开始教程，可供学习参考。
   * Javascript一些基本语法可参考[w3school](https://www.w3school.com.cn/js/index.asp)，包括一些CSS、HTML的语法也可在这个网站上找到。
   * Vue其他比较重要的，主要是掌握好整体框架，各部分之间的互动即可。
++ 运行Vue，命令行打开到Frontend文件夹，npm run install(第一次，安装所有需要的配置)，npm run serve
