@@ -17,17 +17,17 @@
 # Week 2
 搭建系统大致框架。
 ## 后端
-* 负责人：刘润迪、王思鳗
-* 目标：能够连上API数据，可以分别提取出high、low、close price等
-* 资源：后端主要以flask为框架
-** Framework的样本代码已上传，可供参考，主体部分在于Backend文件夹下的flask1.py文件
-** 之前看到的一个比较好的[flask教程](https://www.youtube.com/watch?v=CjYKrbq8BCw&list=PLXmMXHVSvS-CoYS177-UvMAQYRfL3fBtX)，可以学习参考。
-** 最后的最后，一切解释权在于[flask官网](https://flask.palletsprojects.com/en/2.2.x/)，利用好官网材料。
++ 负责人：刘润迪、王思鳗
++ 目标：能够连上API数据，可以分别提取出high、low、close price等
++ 资源：后端主要以flask为框架
+* Framework的样本代码已上传，可供参考，主体部分在于Backend文件夹下的flask1.py文件
+* 之前看到的一个比较好的[flask教程](https://www.youtube.com/watch?v=CjYKrbq8BCw&list=PLXmMXHVSvS-CoYS177-UvMAQYRfL3fBtX)，可以学习参考。
+* 最后的最后，一切解释权在于[flask官网](https://flask.palletsprojects.com/en/2.2.x/)，利用好官网材料。
 ## 前端
-* 负责人：张鑫璨、吴忱松
-* 目标：能够将前端网页大致框架框出，设置好按钮可以跑通样本数据与样本经典策略并画图
-* 资源：前端主要以vue为框架
-** Framework的样本代码已上传，可供参考，主体部分在Frontend>src>components下的两个vue文件。
-** [Vue官网](https://vuejs.org/) Vue的官网也提供有不错的详细从0开始教程，可供学习参考。
-** Javascript一些基本语法可参考[w3school](https://www.w3school.com.cn/js/index.asp)，包括一些CSS、HTML的语法也可在这个网站上找到。
-** Vue其他比较重要的，主要是掌握好整体框架，各部分之间的互动即可。
++ 负责人：张鑫璨、吴忱松
++ 目标：能够将前端网页大致框架框出，设置好按钮可以跑通样本数据与样本经典策略并画图
++ 资源：前端主要以vue为框架
+* Framework的样本代码已上传，可供参考，主体部分在Frontend>src>components下的两个vue文件。
+* [Vue官网](https://vuejs.org/) Vue的官网也提供有不错的详细从0开始教程，可供学习参考。
+* Javascript一些基本语法可参考[w3school](https://www.w3school.com.cn/js/index.asp)，包括一些CSS、HTML的语法也可在这个网站上找到。
+* Vue其他比较重要的，主要是掌握好整体框架，各部分之间的互动即可。
