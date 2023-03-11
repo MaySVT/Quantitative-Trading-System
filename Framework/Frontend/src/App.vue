@@ -1,19 +1,18 @@
 <template>
   <div>
     <svg id = "botteomLayer" style = 'width:1400px; height:720px; background-color:lightgrey'></svg>
-    <Candlestick></Candlestick>
-    <Heatmap @day_detail = 'DayDetail'></Heatmap> 
+    <Classics></Classics>
     <Asset></Asset>
   </div>
 </template>
 <script>
-import Heatmap from "./components/Heatmap.vue"
+import Classics from "./components/Classics.vue"
 import Asset from "./components/Asset.vue"
 
 export default {
     name:'App',
     components:{
-      Heatmap,
+      Classics,
       Asset
     },
  
@@ -46,7 +45,7 @@ export default {
   z-index: -1;
 }
 
-#Candlestick {
+#Classics {
   position: absolute;
   top:0px;
   left:3px;

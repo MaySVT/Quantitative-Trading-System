@@ -50,6 +50,13 @@ def trade(begin, end):
             r = next(row)
     return trd
 
+def sample(asset):
+    data = pd.DataFrame(columns=['high','low','PDC','current'])
+    data['PDC'] = pd.read_csv(r'.\..\Data\pre_cp_adj_fake.csv')[asset]
+    data['high'] = pd.read_csv(r'.\..\Data\high_adj_fake.csv')[asset]
+    data['low'] = pd.read_csv(r'.\..\Data\low_adj_fake.csv')[asset]
+    data['current'] = pd.read_csv(r'.\..\Data\cp_adj_fake.csv')[asset]
+    return data
 
 # flask创建页面链接
 # 例子中若输入网页http://127.0.0.1:5000/Trade/?beg=1645315199996&end=1645315200005
@@ -60,6 +67,19 @@ def Trade():
     end = eval(request.args.get('end'))
     trd = trade(begin,end)
     return json.dumps(trd)
+
+@app.route('/Sample/<string:asset>',methods = ['GET'])
+def Sample(asset):
+    data = sample(asset)
+    s = []
+    for i in range(len(data)):
+        t = {}
+        t['PDC'] = data['PDC'][i]
+        t['high'] = data['high'][i]
+        t['low'] = data['low'][i]
+        t['current'] = data['current'][i]
+        s.append(t)
+    return json.dumps(s)
 
 @app.route('/',methods=['GET'])
 def index():

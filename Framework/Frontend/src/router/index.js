@@ -2,6 +2,11 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
   {
+    path: '/classics',
+    name:'Classics',
+    component: () => import('../components/Classics.vue')
+  },
+  {
     path: '/heatmap',
     name:'Heatmap',
     component: () => import('../components/Heatmap.vue')
