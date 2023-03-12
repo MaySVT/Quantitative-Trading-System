@@ -21,6 +21,11 @@
       return {
         asset:[],
         investvalue:[],
+        TR:[],
+        ATR_param:{
+          k:10,
+          N:20
+        },
         width: 780,
         height: 330,
         margin:{
@@ -69,11 +74,19 @@
              console.error(error);
            });
        },
+       getATR(){
+        let i = 0;
+        while(i < this.asset.length){
+          this.TR.push(Math.max(this.asset[i]['high']-this.asset[i]['low'],Math.abs(this.asset[i]['high']-this.asset[i]['PDC']),Math.abs(this.asset[i]['PDC']-this.asset[i]['low'])));
+          i = i + 1;
+        }
+        console.log(this.TR)
+       },
        Scale(){
         //const gap = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
         const g = d3.select('#Classics').append('g').attr('id', 'classicscale')
                     .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-        var [a,b] = d3.extent(this.investvalue)
+        var [a,b] = d3.extent(this.asset,function(d){return d['current'];});
         let that = this;
         const xscale = d3.scaleLinear()
                          .domain([0,that.asset.length])
@@ -101,7 +114,51 @@
     },
        //ATR strategy的函数实现
        ATR(){
+        const g2 = d3.select('#Classics').append('g').attr('id', 'classicCurve')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
         console.log("ATR")
+        let that = this;
+        that.flag="ATR";
+        //d3.select('#classic').selectAll('rect').remove()
+        //d3.select('#Heatmap').selectAll('#legend').remove()
+        var [a,b] = d3.extent(this.asset,function(d){return d['current'];});
+        const xscale = d3.scaleLinear()
+                         .domain([0,that.asset.length])
+                         .range([0, this.innerWidth]);
+        const yscale = d3.scaleLinear()
+                         .domain([b,a])
+                         .range([0, this.innerHeight]);
+
+        const line = d3.line()
+                       .x(function(d,i){return xscale(i)})
+                       .y(function(d){return yscale(d['current'])})
+                       .curve(d3.curveNatural)
+        console.log(line(that.asset))
+        
+        g2.append('path')
+          //.datum(that.asset)
+          .attr('d',line(that.asset))
+          .attr('fill','none')
+          //.attr('height', this.innerHeight/this.r-10)
+          .attr('stroke',"#3366ff")
+          //.attr("transform", function(d) {
+          //  return `translate(${xscale(d['id'])+1.5},${yscale(d['price'])-5})`;
+          //})
+        //   .on("mouseover",function(){
+        //     let d =d3.select(this).data();
+        //     var str = 'vol:' + d[0]['vol'] + '<br>price:'+ d[0]['price'] + '<br>position:' + d[0]['position'];
+        //     var t = 60+ yscale(d[0]['price'])
+            
+        //     d3.selectAll('.tooltip')
+        //       .html(str)
+        //           .style("left", (xscale(d[0]['id'])+35)+"px")
+        //           .style("top", (t+270)+"px")
+        //           .style("opacity",1.0);
+        // })
+        //   .on("mouseleave",function(){
+        //         d3.selectAll('.tooltip')
+        //           .style("opacity",0.0);
+        //       })
        },
 
        //Dual Thrust strategy的函数实现
@@ -131,7 +188,7 @@
     },
     watch:{
       assets(){
-        this.ATR();
+        this.getATR();
         this.Scale();
       }
     }
