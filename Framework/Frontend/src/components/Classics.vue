@@ -20,6 +20,7 @@
     data(){
       return {
         asset:[],
+        investvalue:[],
         width: 780,
         height: 330,
         margin:{
@@ -45,8 +46,8 @@
     },
     computed:{
       assets(){
-        console.log(this.assets)
-        return this.assets;
+        console.log(this.asset[0])
+        return this.asset;
       },
       innerWidth(){
         return this.width - this.margin.left - this.margin.right
@@ -63,13 +64,41 @@
            .then(res => {
              console.log(res.data);
              this.asset=res.data;
-
            })
            .catch(error => {
              console.error(error);
            });
        },
-
+       Scale(){
+        //const gap = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        const g = d3.select('#Classics').append('g').attr('id', 'classicscale')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+        var [a,b] = d3.extent(this.investvalue)
+        let that = this;
+        const xscale = d3.scaleLinear()
+                         .domain([0,that.asset.length])
+                         .range([0, this.innerWidth]);
+        const yscale = d3.scaleLinear()
+                         .domain([b,a])
+                         .range([0, this.innerHeight]);
+        console.log([a,b])
+        const yaxis = d3.axisLeft(yscale)
+                        .ticks(10)
+                        .tickSize(5)
+                        .tickPadding(5);
+        const xaxis = d3.axisBottom(xscale)
+                        .ticks(20)
+                        .tickSize(-5)
+                        .tickPadding(-15)
+                        .tickFormat(function(d){
+                           return that.asset[d]["hour"].slice(11,16);
+                        })
+                       g.append('g').call(yaxis)
+                        .attr('id' ,'yaxis');
+                       g.append('g').call(xaxis)
+                        .attr('id', 'xaxis');
+  
+    },
        //ATR strategy的函数实现
        ATR(){
         console.log("ATR")
@@ -103,6 +132,7 @@
     watch:{
       assets(){
         this.ATR();
+        this.Scale();
       }
     }
   };
@@ -125,8 +155,8 @@
     line-height: 10px;
     padding: 5px 5px;
     position: absolute;
-    top:10px;
-    left:20px;
+    top:340px;
+    left:680px;
     text-align: center;
     text-decoration: none;
     user-select: none;
@@ -151,8 +181,8 @@
     line-height: 10px;
     padding: 5px 5px;
     position: absolute;
-    top:40px;
-    left:20px;
+    top:340px;
+    left:720px;
     text-align: center;
     text-decoration: none;
     user-select: none;
@@ -196,8 +226,8 @@
   }
   .panel-header {
     position: absolute;
-    top: 345px;
-    left:810px;
+    top: 5px;
+    left:10px;
     padding: -10px 20px;
     width: 60px;
     height: 18px;
@@ -216,8 +246,8 @@
   
   .panel-header-end {
     position: absolute;
-    top: 345px;
-    left:870px;
+    top: 5px;
+    left:70px;
     border-top: 18px solid #455a64;
     border-right: 18px solid #ffffff;
     border-bottom: 0px solid #ffffff;

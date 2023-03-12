@@ -33,7 +33,7 @@ CORS(app)
 # 函数用处为读取本地样本函数，方便展示
 # 若直连API，需要类似爬虫的requests函数、方法
 def trade(begin, end):
-    with open(r"D:\UPenn大三下\Denghui Project\Quantitative-Trading-System\System Framework\Backend\TRADE_processed.csv") as f:
+    with open(r"D:\UPenn大三下\Denghui Project\Quantitative-Trading-System\Framework\Backend\TRADE_processed.csv") as f:
         row = csv.reader(f,delimiter = ',')
         next(row)
         r = next(row)
@@ -51,11 +51,62 @@ def trade(begin, end):
     return trd
 
 def sample(asset):
-    data = pd.DataFrame(columns=['high','low','PDC','current'])
+    data = pd.DataFrame(columns=['hour','high','low','PDC','current'])
+    data['hour'] = pd.read_csv(r'.\..\Data\pre_cp_adj_fake.csv')['hour']
     data['PDC'] = pd.read_csv(r'.\..\Data\pre_cp_adj_fake.csv')[asset]
     data['high'] = pd.read_csv(r'.\..\Data\high_adj_fake.csv')[asset]
     data['low'] = pd.read_csv(r'.\..\Data\low_adj_fake.csv')[asset]
     data['current'] = pd.read_csv(r'.\..\Data\cp_adj_fake.csv')[asset]
+    s = []
+    for i in range(len(data)):
+        t = {}
+        t['hour'] = data['hour'][i]
+        t['PDC'] = data['PDC'][i].item()
+        t['high'] = data['high'][i].item()
+        t['low'] = data['low'][i].item()
+        t['current'] = data['current'][i].item()
+        s.append(t)
+    return s
+
+def sample1(asset):
+    data = []
+    id = 0
+    with open(r'.\..\Data\pre_cp_adj_fake.csv') as f:
+        row = csv.reader(f,delimiter = ',')
+        r = next(row)
+        id = r.index(asset)
+        for r in row:
+            t = {}
+            t['hour'] = r[0]
+            if r[id]=="":
+                t['PDC'] = 0
+            else:
+                t['PDC'] = eval(r[id])
+            data.append(t)
+
+    with open(r'.\..\Data\high_adj_fake.csv') as f:
+        row = csv.reader(f,delimiter = ',')
+        r = next(row)
+        id = r.index(asset)
+        for i in range(len(data)):
+            r = next(row)
+            data[i]['high'] = eval(r[id])
+
+    with open(r'.\..\Data\low_adj_fake.csv') as f:
+        row = csv.reader(f,delimiter = ',')
+        r = next(row)
+        id = r.index(asset)
+        for i in range(len(data)):
+            r = next(row)
+            data[i]['low'] = eval(r[id])
+
+    with open(r'.\..\Data\cp_adj_fake.csv') as f:
+        row = csv.reader(f,delimiter = ',')
+        r = next(row)
+        id = r.index(asset)
+        for i in range(len(data)):
+            r = next(row)
+            data[i]['current'] = eval(r[id])
     return data
 
 # flask创建页面链接
@@ -70,16 +121,8 @@ def Trade():
 
 @app.route('/Sample/<string:asset>',methods = ['GET'])
 def Sample(asset):
-    data = sample(asset)
-    s = []
-    for i in range(len(data)):
-        t = {}
-        t['PDC'] = data['PDC'][i]
-        t['high'] = data['high'][i]
-        t['low'] = data['low'][i]
-        t['current'] = data['current'][i]
-        s.append(t)
-    return json.dumps(s)
+    data = sample1(asset)
+    return json.dumps(data)
 
 @app.route('/',methods=['GET'])
 def index():
