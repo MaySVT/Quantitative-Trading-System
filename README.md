@@ -30,6 +30,7 @@
   * Framework的样本代码已上传，可供参考，主体部分在Frontend>src>components下的两个vue文件。
   * [Vue官网](https://vuejs.org/) Vue的官网也提供有不错的详细从0开始教程，可供学习参考。
   * Javascript一些基本语法可参考[w3school](https://www.w3school.com.cn/js/index.asp)，包括一些CSS、HTML的语法也可在这个网站上找到。
+  * 可视化、画图的工具主要是[d3](https://github.com/d3/d3/blob/main/API.md)库，链接里很完整的API reference，可供参考。
   * Vue其他比较重要的，主要是掌握好整体框架，各部分之间的互动即可。常F12/右击检查来查看console以及Elements。Console.log当print用。
 + 运行Vue，命令行打开到Frontend文件夹，npm install(只有第一次需要运行，安装所有需要的配置)，npm run serve
 
