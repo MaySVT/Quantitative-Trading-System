@@ -30,5 +30,30 @@
   * Framework的样本代码已上传，可供参考，主体部分在Frontend>src>components下的两个vue文件。
   * [Vue官网](https://vuejs.org/) Vue的官网也提供有不错的详细从0开始教程，可供学习参考。
   * Javascript一些基本语法可参考[w3school](https://www.w3school.com.cn/js/index.asp)，包括一些CSS、HTML的语法也可在这个网站上找到。
-  * Vue其他比较重要的，主要是掌握好整体框架，各部分之间的互动即可。
-+ 运行Vue，命令行打开到Frontend文件夹，npm run install(第一次，安装所有需要的配置)，npm run serve
+  * Vue其他比较重要的，主要是掌握好整体框架，各部分之间的互动即可。常F12/右击检查来查看console以及Elements。Console.log当print用。
++ 运行Vue，命令行打开到Frontend文件夹，npm install(只有第一次需要运行，安装所有需要的配置)，npm run serve
+
+## 总结反思
++ 后端：
+  * 已完成与Tushare的基本连接，传输日线数据
+  * 可以再研究一下更高频的数据传输，看看数据能够达到的最高频度是多少
+  * 将数据格式、结构统一化
++ 前端：
+  * 完成样本数据的后端读取与前端获取。
+  * 已完成基本的框架搭建，实现按钮与画图功能
+  * 继续完成策略在前端的实现
+  
+# Week 3
+继续完善框架
+## 策略
+继续完善菲阿里四价策略，查错跑通。
+## 后端
++ 目标：
+  * 数据格式、结构统一化，整理一个Markdown文件总结API->数据格式
+  * 连接更加高频的数据，Tushare是否可以达到需求，是否需要别的数据源
+## 前端
++ 目标：
+  * 完成样本经典策略的前端实现
+  * 调整美化前端页面布局
+  * 试着实现从后端获取Tushare的数据
+ 
