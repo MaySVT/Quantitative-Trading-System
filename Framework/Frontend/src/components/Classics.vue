@@ -1,13 +1,13 @@
 <template>
     <div id = "Tip">
-      <div class="panel-header">Asset</div>
+      <div class="panel-header">Classics</div>
       <div class="panel-header-end"></div>
       <svg id = "Classics"  class="classic" style = 'width:810px; height:370px'>
       </svg>
       <div class="tooltip"></div>
       <div class="tooltip2"></div>
-      <button id = 'ATR' @click = 'ATR()'>ATR</button>
-      <button id = 'DT' @click = 'DT()'>Dual Thrust</button>
+      <button id = 'ATR' @click = 'getATR(),Scale(),ATR()'>ATR</button>
+      <button id = 'DT' @click = 'Scale(),DT()'>Dual Thrust</button>
     </div>
   </template>
   
@@ -26,6 +26,8 @@
           k:10,
           N:20
         },
+        ATR_bounds:[],
+        Unit:[],
         width: 780,
         height: 330,
         margin:{
@@ -38,12 +40,8 @@
         c:20,
         startday:"",
         flag:"",
-        orders:[],
         timegap:100,
-        pricegap:1,
-        timelist:[],
-        pricelist:[],
-        orders_aggregated:[]
+        pricegap:1
       };
     },
     mounted(){
@@ -81,15 +79,125 @@
           i = i + 1;
         }
         console.log(this.TR)
-       },
+        i = 0;
+        while(i < this.asset.length){
+          if(i>=this.ATR_param.k){
+            if(i >= this.ATR_param.N - 1){
+              let s = {};
+              s['Up'] = d3.max(this.asset.slice(i-this.ATR_param.k,i),function(d){return d['high']});
+              s['Down'] = d3.min(this.asset.slice(i-this.ATR_param.k,i),function(d){return d['low']});
+              s['ATR'] = d3.mean(this.TR.slice(i-this.ATR_param.N+1,i+1));
+              this.ATR_bounds.push(s);
+            }
+            else{
+              let s = {};
+              s['Up'] = d3.max(this.asset.slice(i-this.ATR_param.k,i),function(d){return d['high']});
+              s['Down'] = d3.min(this.asset.slice(i-this.ATR_param.k,i),function(d){return d['low']});
+              s['ATR'] = 0;
+              this.ATR_bounds.push(s);
+            }
+          }else{
+            if(i >= this.ATR_param.N - 1){
+              let s = {};
+              s['Up'] = 0;
+              s['Down'] = 0;
+              s['ATR'] = d3.mean(this.asset.slice(i-this.ATR_param.N+1,i+1));
+              this.ATR_bounds.push(s);
+            }
+            else{
+              let s = {};
+              s['Up'] = 0;
+              s['Down'] = 0;
+              s['ATR'] = 0;
+              this.ATR_bounds.push(s);
+            }
+          }
+          i = i + 1;
+        }
+        console.log(this.ATR_bounds);
+        i = 0;
+        while(i<this.ATR_bounds.length){
+          this.Unit.push(0);
+          i = i + 1;
+        }
+        i = 0;
+        let prev_price = this.asset[0]['current'];
+        while(i<this.ATR_bounds.length){
+          if (i==0) {
+            if (this.asset[i]['current']>this.ATR_bounds[i]['Up']) {
+              prev_price = this.asset[i]['current'];
+              this.Unit[i] += 1;
+            }else{
+              if (this.asset[i]['current']<this.ATR_bounds[i]['Down']){
+                prev_price = this.asset[i]['current'];
+                this.Unit[i] -= 1;
+              }
+            }
+          }else{
+            if(this.Unit[i-1]==0){
+              if (this.asset[i]['current']>this.ATR_bounds[i]['Up']) {
+                prev_price = this.asset[i]['current'];
+                this.Unit[i]=this.Unit[i-1]+1;
+              }else{
+                if (this.asset[i]['current']<this.ATR_bounds[i]['Down']) {
+                  prev_price = this.asset[i]['current'];
+                  this.Unit[i] =  this.Unit[i-1]-1;
+                }
+              }
+            }
+            if (this.Unit[i-1]>0) {
+              if (this.asset[i]['current']>prev_price+0.5*this.ATR_bounds[i]['ATR']){
+                this.Unit[i] = this.Unit[i-1]+1;
+                prev_price = this.asset[i]['current'];
+              }else{
+                if(this.asset[i]['current']<prev_price-2*this.ATR_bounds[i]['ATR']){
+                  this.Unit[i] = 0;
+                }else{
+                  if(this.asset[i]['current']<this.ATR_bounds[i]['Down']){
+                  this.Unit[i] = 0;
+                }
+              }
+            }
+          }
+          if (this.Unit[i-1]<0) {
+              if (this.asset[i]['current'] < prev_price - 0.5*this.ATR_bounds[i]['ATR']){
+                this.Unit[i] = this.Unit[i-1]-1;
+                prev_price = this.asset[i]['current'];
+              }else{
+                if(this.asset[i]['current'] > prev_price + 2*this.ATR_bounds[i]['ATR']){
+                  this.Unit[i] = 0;
+                }else{
+                  if(this.asset[i]['current']>this.ATR_bounds[i]['Up']){
+                  this.Unit[i] = 0;
+                }
+              }
+            }
+          }
+        }
+        i = i+1;
+      }
+      console.log(this.Unit);
+
+      i = 0;
+      while(i<this.asset.length){
+        if(i==0)
+          this.investvalue.push(this.asset[i]['current']*this.Unit[i]);
+        else
+          this.investvalue.push(this.investvalue[i-1]+this.asset[i]['current']*this.Unit[i]);
+        i = i + 1;
+      }
+      console.log(this.investvalue);
+      },
+
+      //Scale函数用来画出坐标轴
        Scale(){
-        //const gap = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        d3.select('#classicscale').remove()
         const g = d3.select('#Classics').append('g').attr('id', 'classicscale')
                     .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-        var [a,b] = d3.extent(this.asset,function(d){return d['current'];});
+        var [a,b] = d3.extent(this.investvalue);
         let that = this;
         const xscale = d3.scaleLinear()
-                         .domain([0,that.asset.length])
+                         .domain([0,that.investvalue.length])
                          .range([0, this.innerWidth]);
         const yscale = d3.scaleLinear()
                          .domain([b,a])
@@ -113,56 +221,63 @@
   
     },
        //ATR strategy的函数实现
-       ATR(){
+       ATR(){        
+        d3.select('#classicCurve').remove()
+
+        //选择id为'Classics'的svg，增添g并取id为classicCurve，移动画布使其与设置的margin对其
         const g2 = d3.select('#Classics').append('g').attr('id', 'classicCurve')
                     .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-        console.log("ATR")
+        
+        //防止代码中将this错认为当前数据，用that代替全局的this
         let that = this;
+
+        //设置旗帜为ATR，表示按下了ATR按钮
         that.flag="ATR";
-        //d3.select('#classic').selectAll('rect').remove()
-        //d3.select('#Heatmap').selectAll('#legend').remove()
-        var [a,b] = d3.extent(this.asset,function(d){return d['current'];});
+        
+        //设置x轴、y轴的映射函数，将数据映射到x、y轴坐标上
+        var [a,b] = d3.extent(this.investvalue);
         const xscale = d3.scaleLinear()
-                         .domain([0,that.asset.length])
+                         .domain([0,that.investvalue.length])
                          .range([0, this.innerWidth]);
         const yscale = d3.scaleLinear()
                          .domain([b,a])
                          .range([0, this.innerHeight]);
 
+        //设置折线图的映射函数，会将数据映射为每个点的坐标/每条线段的路径值
         const line = d3.line()
                        .x(function(d,i){return xscale(i)})
-                       .y(function(d){return yscale(d['current'])})
+                       .y(function(d){return yscale(d)})
                        .curve(d3.curveNatural)
-        console.log(line(that.asset))
-        
+      
+        //在g上增添路径path，并将目标画线的数据传入line映射函数中
         g2.append('path')
-          //.datum(that.asset)
-          .attr('d',line(that.asset))
+          .attr('d',line(that.investvalue))
           .attr('fill','none')
-          //.attr('height', this.innerHeight/this.r-10)
           .attr('stroke',"#3366ff")
           //.attr("transform", function(d) {
           //  return `translate(${xscale(d['id'])+1.5},${yscale(d['price'])-5})`;
           //})
-        //   .on("mouseover",function(){
-        //     let d =d3.select(this).data();
-        //     var str = 'vol:' + d[0]['vol'] + '<br>price:'+ d[0]['price'] + '<br>position:' + d[0]['position'];
-        //     var t = 60+ yscale(d[0]['price'])
+          //.on("mouseover",function(){
+          //   let d =d3.select(this).data();
+          //   console.log(d);
+          //   var str = 'value:' + d[0];
+          //   var t = 60 + yscale(d[0])
             
-        //     d3.selectAll('.tooltip')
-        //       .html(str)
-        //           .style("left", (xscale(d[0]['id'])+35)+"px")
-        //           .style("top", (t+270)+"px")
-        //           .style("opacity",1.0);
-        // })
-        //   .on("mouseleave",function(){
-        //         d3.selectAll('.tooltip')
-        //           .style("opacity",0.0);
-        //       })
+          //   d3.selectAll('.tooltip')
+          //     .html(str)
+          //     .style("left", (xscale(d[0]['id'])+35)+"px")
+          //     .style("top", (t+270)+"px")
+          //     .style("opacity",1.0);
+          //})
+          //.on("mouseleave",function(){
+          //   d3.selectAll('.tooltip')
+          //     .style("opacity",0.0);
+          //})
        },
 
        //Dual Thrust strategy的函数实现
        DT(){
+        d3.select('#classicCurve').remove()
         console.log("Dual Thrust")
        },
        
@@ -188,8 +303,8 @@
     },
     watch:{
       assets(){
-        this.getATR();
-        this.Scale();
+        //this.getATR();
+        //this.Scale();
       }
     }
   };
