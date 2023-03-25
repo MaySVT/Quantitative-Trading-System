@@ -26,6 +26,9 @@
           k:10,
           N:20
         },
+        DT_param:{
+          k:5
+        },
         ATR_bounds:[],
         Unit:[],
         width: 780,
@@ -398,7 +401,7 @@
   }
   .panel-header {
     position: absolute;
-    top: 5px;
+    top: 55px;
     left:10px;
     padding: -10px 20px;
     width: 60px;
@@ -418,7 +421,7 @@
   
   .panel-header-end {
     position: absolute;
-    top: 5px;
+    top: 55px;
     left:70px;
     border-top: 18px solid #455a64;
     border-right: 18px solid #ffffff;
