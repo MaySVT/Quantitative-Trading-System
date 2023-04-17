@@ -6,8 +6,12 @@
       </svg>
       <div class="tooltip"></div>
       <div class="tooltip2"></div>
-      <button id = 'ATR' @click = 'getATR(),Scale(),ATR()'>ATR</button>
+      <button id = 'ATR' @click = 'getATR(),Scale(),Draw()'>ATR</button>
       <button id = 'DT' @click = 'Scale(),DT()'>Dual Thrust</button>
+    <form action="strategy=custom" method=post enctype=multipart/form-data>
+         <input class="custom-strategy file" type=file name=file>
+         <input  class="custom-strategy upload" type=submit value=Upload>
+    </form>
     </div>
     <div class="content-left">
       <div class="seg"></div>
@@ -15,7 +19,7 @@
         <div class="nav-menu">
           <div class="nav-title">经典策略</div>
           <div class="nav-content">
-            <a href="#">R-breaker</a>
+            <a id="R-breaker" @click='getStrategy("R_breaker"),getInvestvalue()'>R-breaker</a>
           </div>
         </div>
       </div>
@@ -74,17 +78,31 @@
       }
     },
     methods:{
+       getStrategy(strategy){
+        const path = "http://127.0.0.1:5000/P0806.DCE/st=20230101ed=20230410freq=D/strategy="+strategy;
+        axios
+           .get(path)
+           .then(res => {
+             this.asset=res.data;
+             console.log(this.asset);
+           })
+           .catch(error => {
+             console.error(error);
+           });
+           console.log(this.asset);
+       },
        getAsset(){
         const path = 'http://127.0.0.1:5000/Sample/A';
         axios
            .get(path)
            .then(res => {
-             console.log(res.data);
              this.asset=res.data;
+             console.log(this.asset);
            })
            .catch(error => {
              console.error(error);
            });
+
        },
        getATR(){
         let i = 0;
@@ -203,6 +221,19 @@
       console.log(this.investvalue);
       },
 
+      getInvestvalue(){
+        console.log("getinvest");
+        let i=0;
+        while(i<this.asset.length){
+        if(i==0)
+          this.investvalue.push(this.asset[i]['total_lot']*100);
+        else
+          this.investvalue.push(this.investvalue[i-1]+this.asset[i]['total_lot']*100);
+        i = i + 1;
+        }
+        console.log(this.investvalue);
+      },
+
       //Scale函数用来画出坐标轴
        Scale(){
         d3.select('#classicscale').remove()
@@ -235,7 +266,7 @@
   
     },
        //ATR strategy的函数实现
-       ATR(){        
+       Draw(){        
         d3.select('#classicCurve').remove()
 
         //选择id为'Classics'的svg，增添g并取id为classicCurve，移动画布使其与设置的margin对其
@@ -311,14 +342,16 @@
         }
     },
     created(){
-      this.getAsset();
+      //this.getAsset();
     },
     beforeUnmount() {
     },
     watch:{
       assets(){
-        //this.getATR();
+        //console.log("getasset");
+        //this.getInvestvalue();
         //this.Scale();
+        //this.Draw();
       }
     }
   };
@@ -499,6 +532,16 @@
     text-align:center;
     line-height:30px;
     background-color: #12040c;
+  }
+  .custom-strategy{
+    position:absolute;
+    top:500px;
+  }
+  .file{
+    left:200px;
+  }
+  .upload{
+    left:400px;
   }
   </style>
   
