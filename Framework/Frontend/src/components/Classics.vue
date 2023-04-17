@@ -1,6 +1,6 @@
 <template>
     <div id = "Tip">
-      <div class="panel-header">Classics</div>
+      <div class="panel-header">回测结果</div>
       <div class="panel-header-end"></div>
       <svg id = "Classics"  class="classic" style = 'width:810px; height:370px'>
       </svg>
@@ -8,6 +8,17 @@
       <div class="tooltip2"></div>
       <button id = 'ATR' @click = 'getATR(),Scale(),ATR()'>ATR</button>
       <button id = 'DT' @click = 'Scale(),DT()'>Dual Thrust</button>
+    </div>
+    <div class="content-left">
+      <div class="seg"></div>
+      <div class="nav">
+        <div class="nav-menu">
+          <div class="nav-title">经典策略</div>
+          <div class="nav-content">
+            <a href="#">R-breaker</a>
+          </div>
+        </div>
+      </div>
     </div>
   </template>
   
@@ -37,7 +48,7 @@
           top:40,
           right:20,
           bottom:10,
-          left:45
+          left:55
         },
         r:10,
         c:20,
@@ -402,31 +413,92 @@
   .panel-header {
     position: absolute;
     top: 55px;
-    left:10px;
-    padding: -10px 20px;
+    left:170px;
+    padding: 2px 2px-2px 20px;
     width: 60px;
-    height: 18px;
+    height: 22px;
     line-height: 18px;
-    font-size: 8px;
-    text-align: center;
+    font-size: 6px;
+    text-align: right;
     background: #415c68;
     color: #fcfcfc;
     display: flex;
+    justify-content:space-evenly;
+    align-items: center;
+    align-content:stretch;
     font-weight: bold;
     border-radius: 1px;
     box-shadow: 0 1px 2px rgba(26 26 26 0.2);
     z-index:99;
-  
   }
   
   .panel-header-end {
     position: absolute;
     top: 55px;
-    left:70px;
-    border-top: 18px solid #455a64;
-    border-right: 18px solid #ffffff;
+    left:230px;
+    border-top: 22px solid #455a64;
+    border-right: 22px solid #ffffff;
     border-bottom: 0px solid #ffffff;
     z-index:98;
+  }
+  .content-left{
+    width:12%;
+    height:600px;
+    background-color: #1c232f;
+    float:left;
+  }
+  .left-title{
+    height:50px;
+    width:10px;
+  }
+  .left-title>a{
+    display: block;
+    width:100%;
+    height:50px;
+    line-height: 50px;
+    text-align:center;
+    color:white;
+    text-decoration: none;
+  }
+  .seg{
+    height:1px;
+    width:100%;
+    background-color: black;
+  }
+  .nav{
+    margin-top:5px;
+  }
+  .nav-title{
+    height:40px;
+    width:100%;
+    color:white;
+    text-align:center;
+    line-height:40px;
+    cursor:pointer;
+  }
+  .nav-content{
+    width:100%;
+    height:100%;
+    background-color: #0c1119;
+  }
+  .nav-content>a{
+    display:block;
+    height:30px;
+    width:100%;
+    color:#CCCCCC;
+    text-decoration: none;
+    text-align:center;
+    line-height:30px;
+  }
+  .nav-content>a:hover{
+    display:block;
+    height:30px;
+    width:100%;
+    color:#ffffff;
+    text-decoration: none;
+    text-align:center;
+    line-height:30px;
+    background-color: #12040c;
   }
   </style>
   

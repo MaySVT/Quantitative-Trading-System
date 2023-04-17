@@ -3,7 +3,9 @@
     <div class="topic">
       <h1>
         <img src="./assets/logo.png" class="img_title">
-        <span>教学科研一体化量化交易仿真系统</span>
+        <span class="Homepage">
+          <a href="/Home">教学科研一体化量化交易仿真系统</a>
+        </span>
       </h1>
     </div>
     <div class = "features">
@@ -82,7 +84,15 @@ h1{
   color: #2c2c2c;
   font-family: "Microsoft SimHei";
 }
-
+.Homepage>a{
+    display:block;
+    height:30px;
+    width:100%;
+    color:#050505;
+    text-decoration: none;
+    text-align:center;
+    line-height:30px;
+}
 .img_title{
   width:30px;
   height:30px;
@@ -139,8 +149,8 @@ h1{
   
 #Classics {
   position: absolute;
-  top:50px;
-  left:10px;
+  top:70px;
+  left:160px;
   background: #ffffff;
   border-radius: 2px;
   border-color: blueviolet;
