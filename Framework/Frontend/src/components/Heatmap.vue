@@ -33,7 +33,6 @@ export default {
       },
       r:10,
       c:40,
-      flag:"",
       timegap:100,
       // pricegap:1,
       timelist:[],

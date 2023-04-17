@@ -7,7 +7,7 @@
       <div class="tooltip"></div>
       <div class="tooltip2"></div>
       <button id = 'ATR' @click = 'getATR(),Scale(),Draw()'>ATR</button>
-      <button id = 'DT' @click = 'Scale(),DT()'>Dual Thrust</button>
+      <button id = 'DT' @click = 'trial()'>Dual Thrust</button>
     <form action="strategy=custom" method=post enctype=multipart/form-data>
          <input class="custom-strategy file" type=file name=file>
          <input  class="custom-strategy upload" type=submit value=Upload>
@@ -57,19 +57,15 @@
         r:10,
         c:20,
         startday:"",
-        flag:"",
+        flag:0,
         timegap:100,
         pricegap:1
-      };
+      }
     },
     mounted(){
       this.Scale();
     },
     computed:{
-      assets(){
-        console.log(this.asset[0])
-        return this.asset;
-      },
       innerWidth(){
         return this.width - this.margin.left - this.margin.right
       },
@@ -78,6 +74,10 @@
       }
     },
     methods:{
+       trial(){
+        this.flag+=1;
+        console.log(this.flag);
+       },
        getStrategy(strategy){
         const path = "http://127.0.0.1:5000/P0806.DCE/st=20230101ed=20230410freq=D/strategy="+strategy;
         axios
@@ -85,6 +85,7 @@
            .then(res => {
              this.asset=res.data;
              console.log(this.asset);
+             this.flag += 1;
            })
            .catch(error => {
              console.error(error);
@@ -98,6 +99,8 @@
            .then(res => {
              this.asset=res.data;
              console.log(this.asset);
+             this.flag += 1;
+             console.log(this.flag);
            })
            .catch(error => {
              console.error(error);
@@ -342,18 +345,18 @@
         }
     },
     created(){
-      //this.getAsset();
+      this.getAsset();
     },
     beforeUnmount() {
     },
     watch:{
-      assets(){
-        //console.log("getasset");
-        //this.getInvestvalue();
-        //this.Scale();
-        //this.Draw();
-      }
+      flag(){
+        console.log("getasset");
+        this.$nextTick(() => {
+        console.log('count changed')
+      })
     }
+  }
   };
   </script>
   

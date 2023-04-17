@@ -19,6 +19,14 @@ import csv
 # import oss2
 import pandas as pd
 from datetime import date, timedelta
+import tushare as ts
+from werkzeug.utils import secure_filename
+import sys
+import os
+
+
+sys.path.append(r'.\system strategy')
+from R_breaker import R_breaker
 
 app = Flask(__name__)
 CORS(app)
@@ -29,6 +37,33 @@ CORS(app)
     days = db.Column('f_days',db.Integer,primary_key = True)
     blocks = db.Column('f_blocks',db.Integer)
     deposits = db.Column('f_justification_delay',db.Integer)'''
+
+token='bdb08afc499e166575426cccc5aae85ae04cdb4196cd512ef310d04e'
+ts.set_token(token)
+pro = ts.pro_api()
+index = 1
+
+def time_tran(time):
+        '''
+        把Ymd转化为Y-m-d，方便后续处理
+        '''
+        year = time[0:4]
+        month = time[4:6]
+        date = time[6:]
+        date_str = year + '-' + month + '-' + date
+        return date_str
+
+def is_time(time):
+    is_index = 0
+    if len(time) == 8:
+        date_str = time_tran(time)
+        try:
+            date_object = datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            pass
+        else:
+            is_index = 1
+    return is_index
 
 # 函数用处为读取本地样本函数，方便展示
 # 若直连API，需要类似爬虫的requests函数、方法
@@ -128,6 +163,64 @@ def Sample(asset):
 def index():
     return "Hello Vue"
 
-
+ALLOWED_EXTENSIONS = ['py']
+UPLOAD_FOLDER = '.\\upload'
+ALLOWED_STRATEGY = ['R_breaker','Dual_Thrust','ATR']
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+@app.route('/<ts_code>/st=<start_time>ed=<end_time>freq=<frequency>/strategy=<stg>',methods=['POST', 'GET'])
+def goal_4(ts_code,start_time,end_time,frequency,stg):
+    '''
+    查询strategy是否正确：目前先假设只有custum
+    获取策略
+    返回仓位
+    '''
+    if stg not in ALLOWED_STRATEGY and stg!='custom':
+        return  "系统暂不支持该策略，请查询使用指南"
+    else:
+        #如果策略为CUSTOM：返回HTML页面供用户返回POST请求
+        if stg == 'custom':
+            if request.method == 'GET':
+                return render_template('upload.html')
+            if request.method == 'POST':
+                file = request.files['file']
+                #
+                if file and allowed_file(file.filename):
+                    global index
+                    filename1 = 'strategy'+str(index)+'.py'
+                    filename2 = 'strategy'+str(index)
+                    strategyname = 'my_strategy'+str(index)
+                    index += 1
+                    #保存文件至本地
+                    file.save(os.path.join(UPLOAD_FOLDER,filename1))
+                    #获取函数
+                    sys.path.append(r'.\upload')
+                    md = __import__(filename2)
+                    #获得数据
+                    #data = get_data(ts_code,start_time,end_time,frequency)
+                    #此处为了避免限制，先使用后台数据，后面注释掉就好
+                    data = pd.read_csv(r'.\data.csv')
+                    data['trade_time'] = data['trade_time'].apply(lambda x:datetime.datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+                    #升序排列
+                    data.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
+                    #运行自定义策略，得到结果
+                    result = md.my_strategy(data)
+                    return result.to_json(orient="records", force_ascii=False)
+                else:
+                    return '文件后缀名必须为.py'
+        else:
+            if stg == 'R_breaker':
+                #获得数据
+                #data = get_data(ts_code,start_time,end_time,frequency)
+                #此处为了避免限制，先使用后台数据，后面注释掉就好
+                data = pd.read_csv(r'Framework\Backend\data.csv')
+                data['trade_time'] = data['trade_time'].apply(lambda x:datetime.datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+                #升序排列
+                data.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
+                #运行自定义策略，得到结果
+                result = R_breaker(data)
+                return result.to_json(orient="records", force_ascii=False)
+        
 if __name__ == '__main__':
     app.run(debug=True)

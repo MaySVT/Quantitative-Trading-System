@@ -30,7 +30,6 @@
         r:10,
         c:20,
         startday:"",
-        flag:"",
         orders:[],
         timegap:100,
         pricegap:1,
