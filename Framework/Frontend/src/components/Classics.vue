@@ -63,7 +63,7 @@
       }
     },
     mounted(){
-      this.Scale();
+      //this.Scale();
     },
     computed:{
       innerWidth(){
@@ -259,9 +259,9 @@
                         .ticks(20)
                         .tickSize(-5)
                         .tickPadding(-15)
-                        .tickFormat(function(d){
-                           return that.asset[d]["hour"].slice(11,16);
-                        })
+                        //.tickFormat(function(d,i){
+                        //   return that.asset[i]["date"];//.slice(11,16);
+                        //})
                        g.append('g').call(yaxis)
                         .attr('id' ,'yaxis');
                        g.append('g').call(xaxis)
@@ -345,16 +345,16 @@
         }
     },
     created(){
-      this.getAsset();
+      //this.getAsset();
     },
     beforeUnmount() {
     },
     watch:{
-      flag(){
+      asset(){
         console.log("getasset");
-        this.$nextTick(() => {
-        console.log('count changed')
-      })
+        this.getInvestvalue();
+        this.Scale();
+        this.Draw();
     }
   }
   };
