@@ -1,15 +1,82 @@
 <template>
-  <div id = "Tip">
-    <div class="panel-header">Heatmap</div>
-    <div class="panel-header-end"></div>
-    <svg id = "Heatmap"  class="heatmap" style = 'width:810px; height:370px'>
-    </svg>
-    <input class="time-input1" type="text" v-model.lazy = "start" placeholder="Input Start Time">
-    <input class="time-input2" type="text" v-model.lazy = "timegap" placeholder="Input Timegap">
-    <div class = "time-button" @click="getTimeList()" type="submit">Draw</div>
-    <div class="tooltip"></div>
-    <div class="tooltip2"></div>
-  </div>
+<div style="width: 100%;height:100%">
+    <div id="guide" class="news-guide">
+        <div class='slogan'
+            style="no-repeat center;background-size: auto 380px;"
+        >
+            <div class="data-content">
+                <h2 class="data-banner-sdktitle">
+                    本地量化数据开放使用
+                </h2>
+                <p class="data-banner-sdksubtitle">
+                    <span class="sdksubtitle-text">支持本地调用，提供以期货为主的全品种量化数据</span>
+                </p>
+            </div>
+        </div>
+    </div>
+<!-- banner结束 -->
+
+ <!-- 数据字典开始 -->
+    <div class="guide-box">
+        <div class="data-dictionary">
+            <div class="data-dictionary-title">
+                <div class="line left"></div>
+                <h3>数据字典</h3>
+                <div class="line right"></div>
+            </div>
+            <div class="data-dictionary-content mb_36">
+                <div class="data-dic">
+                    <a href="http://127.0.0.1:5000">
+                        <h4>期货数据</h4>
+                        <p>涵盖中金所、上期所、郑商所和大商所的所有期货合约数据</p>
+                    </a>
+                </div>
+                <div class="data-dic">
+                    <a href="/help/api/help#name:Option">
+                        <h4>期权数据</h4>
+                        <p>提供股票期权和商品期权的合约资料和行情数据</p>
+                    </a>
+                </div>
+                <div class="data-dic">
+                    <a href="/help/api/help#name:plateData">
+                        <h4>行业概念数据</h4>
+                        <p>包含行业板块、概念板块数据</p>
+                    </a>
+                </div>
+                <div class="data-dic">
+                    <a href="/help/api/help#name:index">
+                        <h4>指数数据</h4>
+                        <p>包含沪深市场多只指数数据</p>
+                    </a>
+                </div>
+                <div class="data-dic">
+                    <a href="/help/api/help#name:macroData">
+                        <h4>宏观经济数据</h4>
+                        <p>包含国内的重要宏观经济数据</p>
+                    </a>
+                </div>
+                <div class="data-dic">
+                    <a href="/help/api/help#name:fund">
+                        <h4>场内基金数据</h4>
+                        <p>包含ETF、LOF、分级基金、货币基金完整的行情、净值数据</p>
+                    </a>
+                </div>
+                <div class="data-dic">
+                    <a href="/help/api/help#name:OTCfund">
+                        <h4>场外基金数据</h4>
+                        <p>提供场外基金单位净值、复权净值、投资组合等数据</p>
+                    </a>
+                </div>                
+                <div class="data-dic">
+                    <a href="/help/api/help#name:Public">
+                        <h4>舆情数据</h4>
+                        <p>包含CCTV等舆情数据</p>
+                    </a>
+                </div>
+            </div>
+          </div>
+      </div>
+    </div>
 </template>
 
 <script>
@@ -18,7 +85,7 @@ import axios from 'axios'
 import * as d3 from 'd3'
 
 export default {
-  name:'Heatmap',
+  name:'DataAPI',
   data(){
     return {
       heatmap:[],

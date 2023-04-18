@@ -1,6 +1,29 @@
 <template>
     <div>
-        <h1>Home Page</h1>
-        <p>This is something about our system.</p>
-    </div>
+<!--logo-->
+    <div class="logo"><a href="#"><img src="D:\Desktop\三创\1.png" width="70" height="50"></a></div>
+     
+<br/><br/>
+
+<!--画面内容-->
+<h3 style="text-align:center;font-family:KaiTi;font-size:30px;color:rgb(82, 182, 225)">关于我们</h3>
+<blockquote style="text-align:center;font-family:KaiTi;font-size:18px">搭建面向期货的教学科研一体化集成式量化交易系统<br/>实现实时行情采集，策略及优化<br/>包括但不限于经典策略复现、利用机器学习算法优化因子等<br/>为量化交易投资者与爱好者提供检测、优化其量化策略的平台</blockquote>
+<img src="D:\Desktop\网页可用图片\image124.jpg"/>
+<img src="D:\Desktop\网页可用图片\image129.gif"/>
+<img src="D:\Desktop\网页可用图片\image124.jpg"/>
+<h3 style="text-align:center;font-family:KaiTi;font-size:30px;color:rgb(82, 182, 225)">在这里，你可以</h3>
+<blockquote style="text-align:center;font-family:KaiTi;font-size:18px">精准地专业地面对期货市场<br/>享受教学与科研一体化的集成性系统<br/>对接券商公司，进行模拟盘联系<br/>体验新兴技术带来的便捷<br/>……</blockquote>
+</div>
 </template>
+
+<style type="text/css">
+.hengpai li{
+    width:150px;
+    float:left;
+}
+.logo,.search{
+width:100px;
+height:50px;
+float:left;
+}
+</style>

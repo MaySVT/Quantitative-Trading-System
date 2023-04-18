@@ -15,8 +15,27 @@
         <router-link class="link_btn three" active-class="active" to="/data">数据API</router-link>
         <router-link class="link_btn four" active-class="active" to="/factor">因 子</router-link>
         <router-link class="link_btn five" active-class="active" to="/mannual">使用说明</router-link>
+        <router-link active-class="active" to="/login"><button class="login_button">Login</button></router-link>
+        <router-link active-class="active" to="/register"><button class="register_button">Register</button></router-link>
       </nav>
     </div>
+    <!--div class="search">
+        <div class="z-index_three">
+            <form action="#" name="search">
+                <table border="0" cellpadding="0" cellspacing="0" id="search_height">
+                    <tr>
+                        <td>
+                            <input type="text" name="q" title="Search" class="searchinput" id="searchinput" onKeyDown="if (event.keyCode==13) {}" onBlur="if(this.value=='')value=' 搜你想搜 ';" onFocus="if(this.value==' 搜你想搜 ')value='';" value=" 搜你想搜 " size="12"/>
+                        </td>
+                        <td>
+                           <a href="#" class="button blue">搜索</a>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+        <div class="bg"></div>
+    </div-->
   </div>
   <router-view></router-view>
   <!--div>
@@ -106,23 +125,23 @@ h1{
 
 .one{
   position:absolute;
-  left:400px;
+  left:380px;
 }
 .two{
   position:absolute;
-  left:520px;
+  left:480px;
 }
 .three{
   position:absolute;
-  left:640px;
+  left:580px;
 }
 .four{
   position:absolute;
-  left:770px;
+  left:680px;
 }
 .five{
   position:absolute;
-  left:880px;
+  left:760px;
 }
 .link_btn{
   text-decoration: none;
@@ -130,6 +149,32 @@ h1{
   font-size:15px;
   font-weight:normal;
   font-family: "Microsoft KaiTi";
+}
+.search{
+  position:absolute;
+  top:1px;
+  left:850px;
+  width:80px;
+  height:50px;
+  float:left;
+}
+.login_button{
+  position:absolute;
+  top:5px;
+  left:1000px;
+  width:50px;
+  height:30px;
+  float:left;
+  text-align: center;
+}
+.register_button{
+  position:absolute;
+  top:5px;
+  left:1060px;
+  width:70px;
+  height:30px;
+  float:left;
+  text-align: center;
 }
 
 #bottomLayer{
@@ -149,7 +194,7 @@ h1{
   
 #Classics {
   position: absolute;
-  top:70px;
+  top:100px;
   left:160px;
   background: #ffffff;
   border-radius: 2px;

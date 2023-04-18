@@ -6,12 +6,17 @@
       </svg>
       <div class="tooltip"></div>
       <div class="tooltip2"></div>
-      <button id = 'ATR' @click = 'getATR(),Scale(),Draw()'>ATR</button>
-      <button id = 'DT' @click = 'trial()'>Dual Thrust</button>
-    <form action="strategy=custom" method=post enctype=multipart/form-data>
+      <!--button id = 'ATR' @click = 'getATR(),Scale(),Draw()'>ATR</button-->
+      <!--button id = 'DT' @click = 'trial()'>Dual Thrust</button-->
+      <input class="asset-code" type="text" v-model.lazy = "asset_code" placeholder="Input Asset Code">
+      <input class="time-start" type="text" v-model.lazy = "start_time" placeholder="Input Start Time">
+      <input class="time-end" type="text" v-model.lazy = "end_time" placeholder="Input End Time">
+      <input class="time-frequency" type="text" v-model.lazy = "frequency" placeholder="Input Frequency">
+      <div class = "time-button" @click="backtest()" type="submit">Backtest</div>
+      <form action="strategy=custom" method=post enctype=multipart/form-data>
          <input class="custom-strategy file" type=file name=file>
          <input  class="custom-strategy upload" type=submit value=Upload>
-    </form>
+      </form>
     </div>
     <div class="content-left">
       <div class="seg"></div>
@@ -19,7 +24,9 @@
         <div class="nav-menu">
           <div class="nav-title">经典策略</div>
           <div class="nav-content">
-            <a id="R-breaker" @click='getStrategy("R_breaker"),getInvestvalue()'>R-breaker</a>
+            <a id="R-breaker" @click='getStrategy("R_breaker")'>R-breaker</a>
+            <a id="ATR" @click='getStrategy("ATR")'>ATR</a>
+            <a id="Dual Thrust" @click='getStrategy("Dual_Thrust")'>Dual Thrust</a>
           </div>
         </div>
       </div>
@@ -31,7 +38,7 @@
   import * as d3 from 'd3'
   
   export default {
-    name:'Classics',
+    name:'Backtest',
     data(){
       return {
         asset:[],
@@ -56,14 +63,16 @@
         },
         r:10,
         c:20,
-        startday:"",
-        flag:0,
-        timegap:100,
-        pricegap:1
+        asset_code:"",
+        start_time:"",
+        end_time:"",
+        frequency:"",
+        strategy:"",
+        flag:0
       }
     },
     mounted(){
-      //this.Scale();
+
     },
     computed:{
       innerWidth(){
@@ -78,8 +87,11 @@
         this.flag+=1;
         console.log(this.flag);
        },
-       getStrategy(strategy){
-        const path = "http://127.0.0.1:5000/P0806.DCE/st=20230101ed=20230410freq=D/strategy="+strategy;
+       getStrategy(s){
+        this.strategy=s;
+       },
+       backtest(){
+        const path = "http://127.0.0.1:5000/"+this.asset_code+"/st="+this.start_time+"ed="+this.end_time+"freq="+this.frequency+"/strategy="+this.strategy;
         axios
            .get(path)
            .then(res => {
@@ -226,13 +238,10 @@
 
       getInvestvalue(){
         console.log("getinvest");
-        let i=0;
+        let i = 0;
         while(i<this.asset.length){
-        if(i==0)
-          this.investvalue.push(this.asset[i]['total_lot']*100);
-        else
-          this.investvalue.push(this.investvalue[i-1]+this.asset[i]['total_lot']*100);
-        i = i + 1;
+          this.investvalue.push(this.asset[i]['total_cash']);
+          i = i + 1;
         }
         console.log(this.investvalue);
       },
@@ -295,7 +304,7 @@
         const line = d3.line()
                        .x(function(d,i){return xscale(i)})
                        .y(function(d){return yscale(d)})
-                       .curve(d3.curveNatural)
+                       .curve(d3.curveLinear)
       
         //在g上增添路径path，并将目标画线的数据传入line映射函数中
         g2.append('path')
@@ -351,7 +360,7 @@
     },
     watch:{
       asset(){
-        console.log("getasset");
+        // console.log("getasset");
         this.getInvestvalue();
         this.Scale();
         this.Draw();
@@ -361,58 +370,6 @@
   </script>
   
   <style scoped>
-  #ATR {
-    appearance: none;
-    background-color: #39c561;
-    border: 1px solid rgba(27, 31, 35, .15);
-    border-radius: 5px;
-    box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
-    box-sizing: border-box;
-    color: #fff;
-    cursor: pointer;
-    display: inline-block;
-    font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-    font-size: 10px;
-    font-weight: 1200;
-    line-height: 10px;
-    padding: 5px 5px;
-    position: absolute;
-    top:340px;
-    left:680px;
-    text-align: center;
-    text-decoration: none;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-    vertical-align: middle;
-    white-space: nowrap;
-}
-#DT{
-    appearance: none;
-    background-color: #39c561;
-    border: 1px solid rgba(27, 31, 35, .15);
-    border-radius: 5px;
-    box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
-    box-sizing: border-box;
-    color: #fff;
-    cursor: pointer;
-    display: inline-block;
-    font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-    font-size: 10px;
-    font-weight: 1200;
-    line-height: 10px;
-    padding: 5px 5px;
-    position: absolute;
-    top:340px;
-    left:720px;
-    text-align: center;
-    text-decoration: none;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-    vertical-align: middle;
-    white-space: nowrap;
-}
   .tooltip{
       position: absolute;
       padding-left:5px;
@@ -448,7 +405,7 @@
   }
   .panel-header {
     position: absolute;
-    top: 55px;
+    top: 90px;
     left:170px;
     padding: 2px 2px-2px 20px;
     width: 60px;
@@ -470,12 +427,85 @@
   
   .panel-header-end {
     position: absolute;
-    top: 55px;
+    top: 90px;
     left:230px;
     border-top: 22px solid #455a64;
     border-right: 22px solid #ffffff;
     border-bottom: 0px solid #ffffff;
     z-index:98;
+  }
+  .asset-code{
+  position: absolute;
+  top: 50px;
+  left:205px;
+  width: 125px;
+  height: 18px;
+  border-top: 5px solid #455a64;
+  border-bottom: 2px solid #455a64;
+  z-index:98;
+  }
+  .time-start{
+  position: absolute;
+  top: 50px;
+  left:340px;
+  width: 125px;
+  height: 18px;
+  border-top: 5px solid #455a64;
+  border-bottom: 2px solid #455a64;
+  z-index:98;
+}
+
+  .time-end{
+  position: absolute;
+  top: 50px;
+  left:475px;
+  width: 125px;
+  height: 18px;
+  border-top: 5px solid #455a64;
+  border-bottom: 2px solid #455a64;
+  z-index:98;
+}
+  .time-frequency{
+  position: absolute;
+  top: 50px;
+  left:610px;
+  width: 100px;
+  height: 18px;
+  border-top: 5px solid #455a64;
+  border-bottom: 2px solid #455a64;
+  z-index:98;
+  }
+  .time-button{
+  display: flex;
+  position: absolute;
+  top: 50px;
+  left:725px;
+  width: 90px;
+  height: 25px;
+  appearance: none;
+  background-color: #455a64;
+  border: 1px solid rgba(27, 31, 35, .15);
+  border-radius: 5px;
+  box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-size: 15px;
+  font-weight: 520;
+  line-height: 10px;
+  padding: 5px 5px;
+  text-align: center;
+  text-decoration: none;
+  justify-content:space-evenly;
+  align-items: center;
+  align-content:stretch;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: middle;
+  white-space: nowrap;
   }
   .content-left{
     width:12%;
@@ -538,7 +568,7 @@
   }
   .custom-strategy{
     position:absolute;
-    top:500px;
+    top:520px;
   }
   .file{
     left:200px;

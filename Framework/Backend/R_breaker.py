@@ -116,7 +116,7 @@ def R_breaker(data,loss_price=30,initial_cash=50000,service_charge=15,max_lot=2)
             df_result.loc[n2] = [datetime.datetime.strftime(data['trade_time'][n1],"%Y-%m-%d"),high,low,close,deal,cash_account,total_lot,total_cash]  
             n2 += 1
             n1 = n1 + len(data_deal)
-        return df_result[['date','total_lot']]
+        return df_result[['date','total_lot','total_cash']]
 
 
 

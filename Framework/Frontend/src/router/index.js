@@ -8,8 +8,8 @@ const routes = [
   },
   {
     path: '/backtest',
-    name:'Classics',
-    component: () => import('../components/Classics.vue')
+    name:'Backtest',
+    component: () => import('../components/Backtest.vue')
   },
   {
     path: '/strategy',
@@ -17,16 +17,24 @@ const routes = [
     component: () => import('../components/Strategy.vue')
   },{
     path: '/data',
-    name:'Heatmap',
-    component: () => import('../components/Heatmap.vue')
+    name:'Data',
+    component: () => import('../components/DataAPI.vue')
   },{
     path: '/factor',
-    name:'Asset',
-    component: () => import('../components/Asset.vue')
+    name:'Factor',
+    component: () => import('../components/Factor.vue')
   },{
     path: '/mannual',
-    name:'Hello',
-    component: () => import('../components/HelloWorld.vue')
+    name:'Mannual',
+    component: () => import('../components/Mannual.vue')
+  },{
+    path: '/login',
+    name:'Login',
+    component: () => import('../components/Login.vue')
+  },{
+    path: '/register',
+    name:'Register',
+    component: () => import('../components/Register.vue')
   }
 ]
 
