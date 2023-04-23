@@ -13,6 +13,7 @@
       <input class="time-end" type="text" v-model.lazy = "end_time" placeholder="Input End Time">
       <input class="time-frequency" type="text" v-model.lazy = "frequency" placeholder="Input Frequency">
       <div class = "time-button" @click="backtest()" type="submit">Backtest</div>
+      <div class = "indexes">最大回撤：{{retreat }}</div>
       <form action="strategy=custom" method=post enctype=multipart/form-data>
          <input class="custom-strategy file" type=file name=file>
          <input  class="custom-strategy upload" type=submit value=Upload>
@@ -42,6 +43,7 @@
     data(){
       return {
         asset:[],
+        retreat:"",
         investvalue:[],
         TR:[],
         ATR_param:{
@@ -97,7 +99,6 @@
            .then(res => {
              this.asset=res.data;
              console.log(this.asset);
-             this.flag += 1;
            })
            .catch(error => {
              console.error(error);
@@ -264,17 +265,26 @@
                         .ticks(10)
                         .tickSize(5)
                         .tickPadding(5);
+
         const xaxis = d3.axisBottom(xscale)
-                        .ticks(20)
-                        .tickSize(-5)
-                        .tickPadding(-15)
-                        //.tickFormat(function(d,i){
-                        //   return that.asset[i]["date"];//.slice(11,16);
-                        //})
-                       g.append('g').call(yaxis)
-                        .attr('id' ,'yaxis');
-                       g.append('g').call(xaxis)
-                        .attr('id', 'xaxis');
+                      .ticks(20)
+                      .tickSize(-5)
+                      .tickPadding(-15)
+                      .tickFormat(function(d){
+                        //return i;
+                        //console.log(that.asset[d]['trade_time'])
+                        return d<that.asset.length?that.asset[d]['date'].slice(5,10):that.asset[d-1]['date'].slice(5,10);
+                      })
+
+                     g.append('g').call(yaxis)
+                      .attr('id' ,'yaxis');
+                     g.append('g').call(xaxis)
+                      .attr('id', 'xaxis')
+                      
+                     d3.select('#xaxis')
+                       .selectAll('.tick')
+                       .selectAll('text')
+                       .attr("font-size","9px");
   
     },
        //ATR strategy的函数实现
@@ -362,6 +372,7 @@
       asset(){
         // console.log("getasset");
         this.getInvestvalue();
+        this.retreat = d3.max(this.asset,function(d){return d['retreat']}).toFixed(2);
         this.Scale();
         this.Draw();
     }
@@ -575,6 +586,11 @@
   }
   .upload{
     left:400px;
+  }
+  .indexes{
+    position: absolute;
+    left: 1000px;
+    top:200px;
   }
   </style>
   

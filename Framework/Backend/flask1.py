@@ -10,7 +10,6 @@ import string
 import math
 import json
 # import simplejson
-import datetime
 import copy
 import random
 import pandas as pd
@@ -18,7 +17,7 @@ import numpy as np
 import csv
 # import oss2
 import pandas as pd
-from datetime import date, timedelta
+from datetime import datetime,date, timedelta
 import tushare as ts
 from werkzeug.utils import secure_filename
 import sys
@@ -27,6 +26,8 @@ import os
 
 sys.path.append(r'.\system strategy')
 from R_breaker import R_breaker
+from ATR import ATR
+from Fairy import Fairy
 
 app = Flask(__name__)
 CORS(app)
@@ -64,6 +65,17 @@ def is_time(time):
         else:
             is_index = 1
     return is_index
+
+def retreat(data):
+    '''
+    输入：策略结果
+    输出：输入的策略结果的基础上，新增一列,列名为retreat,数据为对应时间的回撤（%）
+    '''
+    data['retreat'] = data['total_cash'].shift(-1)
+    data['retreat'] = -(data['retreat']-data['total_cash'])/data['total_cash']*100
+    #如果只需要最大回撤 将下述代码的注释去掉
+    #data['retreat'] = max(data['retreat'])
+    return data
 
 # 函数用处为读取本地样本函数，方便展示
 # 若直连API，需要类似爬虫的requests函数、方法
@@ -163,12 +175,74 @@ def Sample(asset):
 def index():
     return "Hello Vue"
 
+def is_ts_code(ts_code):
+    '''
+    查询字符串是否符合：XX.XX的格式
+    获取.后的字符
+    查询字符是否在交易所列表中
+    通过字典方法获得交易所全称
+    通过fut_basic获得交易所所有期货的ts_code列表
+    查询ts_code是否在该列表中
+    '''
+    is_index = 0
+    if '.' in ts_code:
+        exchange = ts_code.split('.')[-1]
+        if exchange in ['CFX','DCE','ZCE','SHF','INE','GFE']:
+            map_dic = dict(zip(['CFX','DCE','ZCE','SHF','INE','GFE'],['CFFEX','DCE','CZCE','SHFE','INE','GFEX']))
+            exchange_real = map_dic[exchange]
+            ts_code_lst = list(pro.fut_basic(exchange=exchange_real, fut_type='1', fields='ts_code')['ts_code'])
+            if ts_code in ts_code_lst:
+                is_index = 1
+    return is_index
+
+@app.route('/<ts_code>')
+def goal_1(ts_code):
+    '''
+    查询字符串是否符合：XX.XX的格式
+    获取.后的字符
+    查询字符是否在交易所列表中
+    通过字典方法获得交易所全称
+    通过fut_basic获得交易所所有期货的ts_code列表
+    查询ts_code是否在该列表中
+    '''
+    is_ts_code_index = is_ts_code(ts_code)
+    if is_ts_code_index == 1:
+        return 'ts_code正确'
+    else:
+        return 'ts_code错误'
+
+def is_heyue(ts_code,start_time,end_time):
+    exchange = ts_code.split('.')[-1]
+    map_dic = dict(zip(['CFX','DCE','ZCE','SHF','INE','GFE'],['CFFEX','DCE','CZCE','SHFE','INE','GFEX']))
+    exchange_real = map_dic[exchange]
+    df = pro.fut_basic(exchange=exchange_real, fut_type='1', fields='ts_code,list_date,delist_date')
+    st = list(df[df['ts_code']==ts_code]['list_date'])[0]
+    ed = list(df[df['ts_code']==ts_code]['delist_date'])[0]
+    #判断是否在合约期间
+    st_1 = datetime.strptime(time_tran(start_time),'%Y-%m-%d')
+    st_2 = datetime.strptime(time_tran(st),'%Y-%m-%d')
+    ed_1 = datetime.strptime(time_tran(end_time),'%Y-%m-%d')
+    ed_2 = datetime.strptime(time_tran(ed),'%Y-%m-%d')
+    if (st_1 >= st_2) and (ed_1 <= ed_2):
+        return 1
+    else:
+        return 0
+    
+def get_data(ts_code,start_time,end_time,frequency):
+    result = ts.pro_bar(ts_code= ts_code , asset = 'FT',freq = frequency,start_date = start_time, end_date = end_time)
+    #trade_time类型修改：
+    result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+    #升序排列
+    result.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
+    return result
+
 ALLOWED_EXTENSIONS = ['py']
 UPLOAD_FOLDER = '.\\upload'
 ALLOWED_STRATEGY = ['R_breaker','Dual_Thrust','ATR']
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
 @app.route('/<ts_code>/st=<start_time>ed=<end_time>freq=<frequency>/strategy=<stg>',methods=['POST', 'GET'])
 def goal_4(ts_code,start_time,end_time,frequency,stg):
     '''
@@ -195,17 +269,18 @@ def goal_4(ts_code,start_time,end_time,frequency,stg):
                     #保存文件至本地
                     file.save(os.path.join(UPLOAD_FOLDER,filename1))
                     #获取函数
-                    sys.path.append(r'.\upload')
+                    sys.path.append(r'Framework\Backend\upload')
                     md = __import__(filename2)
                     #获得数据
                     #data = get_data(ts_code,start_time,end_time,frequency)
                     #此处为了避免限制，先使用后台数据，后面注释掉就好
-                    data = pd.read_csv(r'.\data.csv')
-                    data['trade_time'] = data['trade_time'].apply(lambda x:datetime.datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+                    data = pd.read_csv(r'Framework\Backend\data.csv')
+                    data['trade_time'] = data['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
                     #升序排列
                     data.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
                     #运行自定义策略，得到结果
                     result = md.my_strategy(data)
+                    result = retreat(result)                    
                     return result.to_json(orient="records", force_ascii=False)
                 else:
                     return '文件后缀名必须为.py'
@@ -215,12 +290,63 @@ def goal_4(ts_code,start_time,end_time,frequency,stg):
                 #data = get_data(ts_code,start_time,end_time,frequency)
                 #此处为了避免限制，先使用后台数据，后面注释掉就好
                 data = pd.read_csv(r'Framework\Backend\data.csv')
-                data['trade_time'] = data['trade_time'].apply(lambda x:datetime.datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+                data['trade_time'] = data['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
                 #升序排列
                 data.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
                 #运行自定义策略，得到结果
                 result = R_breaker(data)
+                result = retreat(result)
                 return result.to_json(orient="records", force_ascii=False)
+
+@app.route('/<ts_code>/st=<start_time>ed=<end_time>freq=<frequency>')
+def goal_2(ts_code,start_time,end_time,frequency):
+    '''
+    ts_code是否正确
+    st和ed格式是否正确
+    获取ts_code合约时间
+    查询st和ed是否在该范围内
+    返回所有时间
+    '''
+    is_ts_index = is_ts_code(ts_code)
+    is_st_index = is_time(start_time)
+    is_ed_index = is_time(end_time)
+    if is_ts_index:
+        if is_st_index and is_ed_index:
+            if is_heyue(ts_code,start_time,end_time):
+                #result = ts.pro_bar(ts_code= ts_code , asset = 'FT',freq = frequency,start_date = start_time, end_date = end_time)
+                #return result.to_json(orient="records", force_ascii=False)
+                #此处为了避免限制，先使用后台数据，后面注释掉就好
+                result = pd.read_csv(r'Framework\Backend\data.csv')
+                result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+                #升序排列
+                result.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
+                return result.to_json(orient="records", force_ascii=False)
+            else:
+                return '输入时间段不在合约期间'
+        else:
+            return '时间格式错误'
+    else:
+        return 'ts_code错误'
+
+@app.route('/<ts_code>/st=<start_time>ed=<end_time>freq=<frequency>/<key>')
+def goal_3(ts_code,start_time,end_time,frequency,key):
+    is_ts_index = is_ts_code(ts_code)
+    is_st_index = is_time(start_time)
+    is_ed_index = is_time(end_time)
+    if is_ts_index:
+        if is_st_index and is_ed_index:
+            if is_heyue(ts_code,start_time,end_time):
+                if key in ['open','high','low','close']:
+                    result = ts.pro_bar(ts_code= ts_code , asset = 'FT',freq = frequency,start_date = start_time, end_date = end_time)[['trade_date',key]]
+                    return result.to_json(orient="records", force_ascii=False)
+                else:
+                    return '关键词必须为：open high low close'
+            else:
+                return '输入时间段不在合约期间'
+        else:
+            return '时间格式错误'
+    else:
+        return 'ts_code错误'
         
 if __name__ == '__main__':
     app.run(debug=True)
