@@ -307,26 +307,31 @@ def goal_2(ts_code,start_time,end_time,frequency):
     查询st和ed是否在该范围内
     返回所有时间
     '''
-    is_ts_index = is_ts_code(ts_code)
-    is_st_index = is_time(start_time)
-    is_ed_index = is_time(end_time)
-    if is_ts_index:
-        if is_st_index and is_ed_index:
-            if is_heyue(ts_code,start_time,end_time):
-                #result = ts.pro_bar(ts_code= ts_code , asset = 'FT',freq = frequency,start_date = start_time, end_date = end_time)
-                #return result.to_json(orient="records", force_ascii=False)
-                #此处为了避免限制，先使用后台数据，后面注释掉就好
-                result = pd.read_csv(r'Framework\Backend\data.csv')
-                result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
-                #升序排列
-                result.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
-                return result.to_json(orient="records", force_ascii=False)
-            else:
-                return '输入时间段不在合约期间'
-        else:
-            return '时间格式错误'
-    else:
-        return 'ts_code错误'
+    result = pd.read_csv(r'Framework\Backend\data.csv')
+    result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+    #升序排列
+    result.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
+    return result.to_json(orient="records", force_ascii=False)
+    # is_ts_index = is_ts_code(ts_code)
+    # is_st_index = is_time(start_time)
+    # is_ed_index = is_time(end_time)
+    # if is_ts_index:
+    #     if is_st_index and is_ed_index:
+    #         if is_heyue(ts_code,start_time,end_time):
+    #             #result = ts.pro_bar(ts_code= ts_code , asset = 'FT',freq = frequency,start_date = start_time, end_date = end_time)
+    #             #return result.to_json(orient="records", force_ascii=False)
+    #             #此处为了避免限制，先使用后台数据，后面注释掉就好
+    #             result = pd.read_csv(r'Framework\Backend\data.csv')
+    #             result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+    #             #升序排列
+    #             result.sort_values(by = 'trade_time',ascending = True,inplace = True,ignore_index = True)
+    #             return result.to_json(orient="records", force_ascii=False)
+    #         else:
+    #             return '输入时间段不在合约期间'
+    #     else:
+    #         return '时间格式错误'
+    # else:
+    #     return 'ts_code错误'
 
 @app.route('/<ts_code>/st=<start_time>ed=<end_time>freq=<frequency>/<key>')
 def goal_3(ts_code,start_time,end_time,frequency,key):
