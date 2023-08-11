@@ -22,12 +22,22 @@ import tushare as ts
 from werkzeug.utils import secure_filename
 import sys
 import os
-
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import gplearn
+import talib
+from gp_extend_func import *
+from gplearn import genetic
+import gplearn
+from factor import factor
 
 sys.path.append(r'.\system strategy')
 from R_breaker import R_breaker
 from ATR import ATR
 from Fairy import Fairy
+from factor import factor
+from genetic_algorithm import ga
 
 app = Flask(__name__)
 CORS(app)
@@ -353,5 +363,25 @@ def goal_3(ts_code,start_time,end_time,frequency,key):
     else:
         return 'ts_code错误'
         
+
+@app.route('/<ts_code>/st=<start_time>ed=<end_time>freq=<frequency>/<factor_list>/gr=<int:generations>ps=<int:population_size>ts=<int:tournament_size>hof=<int:hall_of_fame>comp=<int:n_components>method=<init_method>depth=<init_depth>')
+def gene(ts_code,start_time,end_time,frequency,factor_list,generations,population_size,tournament_size,hall_of_fame,n_components,init_method,init_depth):
+
+    ## 后续需要换数据源或
+    result = pd.read_csv(r'Framework\genetic algorithm\data\example.csv')
+    result['open_time'] = pd.to_datetime(result.open_time)
+    # result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+    #升序排列
+    result.sort_values(by = 'open_time',ascending = True,inplace = True,ignore_index = True)
+
+    result = ga(result,eval(factor_list))
+    result.gp(generations = generations,population_size = population_size,tournament_size = tournament_size,hall_of_fame = hall_of_fame,
+            n_components = n_components,random_state=666,n_jobs = -1,
+            init_method =init_method,init_depth =eval(init_depth))
+    result.generate_new_factor()
+    data = result.data
+    IC = result.IC()
+    return "{'factors':"+data.to_json(orient="records", force_ascii=False)+",'IC':"+json.dumps(IC)+'}'
+
 if __name__ == '__main__':
     app.run(debug=True)

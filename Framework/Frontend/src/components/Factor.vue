@@ -76,7 +76,9 @@ export default {
       frequency:"",
       strategy:"",
       flag1:0,
-      flag2:0
+      flag2:0,
+      factorList:[],
+      gaFactors:[]
     }
   },
   mounted(){
@@ -105,6 +107,19 @@ export default {
          .then(res => {
            this.asset=res.data;
            console.log(this.asset);
+         })
+         .catch(error => {
+           console.error(error);
+         });
+     },
+     getGpFactors(){
+      const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/['OBV','EMA','ATR','AD','ROC']/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
+      // const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/"+this.factorList+"/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
+      axios
+         .get(path)
+         .then(res => {
+           this.gaFactors=res.data;
+           console.log(this.gaFactors);
          })
          .catch(error => {
            console.error(error);
@@ -237,6 +252,7 @@ export default {
       }
   },
   created(){
+    this.getGpFactors();
   },
   beforeUnmount() {
   },
