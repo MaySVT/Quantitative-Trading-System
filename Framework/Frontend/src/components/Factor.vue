@@ -77,8 +77,9 @@ export default {
       strategy:"",
       flag1:0,
       flag2:0,
-      factorList:[],
-      gaFactors:[]
+      gaFactorList:[],
+      gaFactors:[],
+      IC:{}
     }
   },
   mounted(){
@@ -114,12 +115,14 @@ export default {
      },
      getGpFactors(){
       const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/['OBV','EMA','ATR','AD','ROC']/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
-      // const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/"+this.factorList+"/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
+      // const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/"+this.gaFactorList+"/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
       axios
          .get(path)
          .then(res => {
-           this.gaFactors=res.data;
+           this.gaFactors=eval(res.data)['factors'];
+           this.IC = eval(res.data)['IC'];
            console.log(this.gaFactors);
+           console.log(this.IC);
          })
          .catch(error => {
            console.error(error);
