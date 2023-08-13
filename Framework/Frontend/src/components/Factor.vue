@@ -3,44 +3,86 @@
   <input class="time-start" type="text" v-model.lazy = "start_time" placeholder="Input Start Time">
   <input class="time-end" type="text" v-model.lazy = "end_time" placeholder="Input End Time">
   <input class="time-frequency" type="text" v-model.lazy = "frequency" placeholder="Input Frequency">
-  <select class="factor1-select" v-model="factor1">
-    <option disabled selected value>- Choose Factor 1</option>
-    <option v-for="item in factorList" v-bind:value="item.name" :key="item.id" v-text="item.name" ></option>
-  </select>
-  <select class="operator-select" v-model="operator">
-    <option disabled selected value>- Operator</option>
-    <option v-for="item in operatorList" v-bind:value="item.name" :key="item.id" v-text="item.name" ></option>
-  </select>
-  <select class="factor2-select" v-model="factor2">
-    <option disabled selected value>- Choose Factor 2</option>
-    <option v-for="item in factorList" v-bind:value="item.name" :key="item.id" v-text="item.name" ></option>
-  </select>
-  <div class = "factor-button" @click="getAsset()" type="submit">Calculate</div>
-  <el-table id="DataTable"
-      v-if="flag==1"
-      :data="asset_show"
-      @header-click="Draw"
-      height="480"
-      :header-cell-style="{'text-align':'center'}"
-      style="width:50%">
+  <div class = "basic-button" @click="mode='basic'" type="submit">Basic</div>
+  <div class = "ga-button" @click="mode='ga'" type="submit">Genetic Algorithm</div>
+
+  <div id="basic-cal" v-if="mode=='basic'">
+    <select class="factor1-select" v-model="factor1">
+      <option disabled selected value>- Choose Factor 1</option>
+      <option v-for="item in factorList" v-bind:value="item.name" :key="item.id" v-text="item.name" ></option>
+    </select>
+    <select class="operator-select" v-model="operator">
+      <option disabled selected value>- Operator</option>
+      <option v-for="item in operatorList" v-bind:value="item.name" :key="item.id" v-text="item.name" ></option>
+    </select>
+    <select class="factor2-select" v-model="factor2">
+      <option disabled selected value>- Choose Factor 2</option>
+      <option v-for="item in factorList" v-bind:value="item.name" :key="item.id" v-text="item.name" ></option>
+    </select>
+    <div class = "factor-button" @click="getAsset()" type="submit">Calculate</div>
+    <el-table id="DataTable"
+        v-if="flag==1"
+        :data="asset_show"
+        @header-click="Draw"
+        height="480"
+        :header-cell-style="{'text-align':'center'}"
+        style="width:50%">
+        
+        <el-table-column
+          fixed
+          prop="trade_time"
+          label="Trade time"
+          width="160"
+          align="center">
+        </el-table-column>
+        <el-table-column 
+          v-for="(item,index) in tableHead"  
+          :prop="item.column_name" 
+          :label="item.column_comment" 
+          :key="index"
+          width="120"
+          align="center">
+        </el-table-column>
       
-      <el-table-column
-        fixed
-        prop="trade_time"
-        label="Trade time"
-        width="160"
-        align="center">
-      </el-table-column>
-      <el-table-column 
-        v-for="(item,index) in tableHead"  
-        :prop="item.column_name" 
-        :label="item.column_comment" 
-        :key="index"
-        width="120"
-        align="center">
-      </el-table-column>
-    
-    </el-table>
+      </el-table>
+    </div>
+    <div id="ga_factor_mining" v-if="mode=='ga'">
+      <el-select class="gaFactor-select" v-model="gaFactorList" multiple placeholder="请选择需要进行挖掘的初代因子">
+        <el-option
+          v-for="(item,index) in options"
+          :key="index"
+          :label="item.label"
+          :value="item.value">
+        </el-option>
+      </el-select>
+
+      <div class = "factor-button" @click="getGpFactors()" type="submit">挖掘</div>
+      <el-table id="DataTable"
+          v-if="new_gaFactorList.length>0"
+          :data="gaFactors"
+          @header-click="Draw"
+          height="480"
+          :header-cell-style="{'text-align':'center'}"
+          style="width:50%">
+          
+          <el-table-column
+            fixed
+            prop="open_time"
+            label="open time"
+            width="160"
+            align="center">
+          </el-table-column>
+          <el-table-column 
+            v-for="(item,index) in new_gaFactorList"  
+            :prop="item" 
+            :label="item" 
+            :key="index"
+            width="120"
+            align="center">
+          </el-table-column>
+        
+      </el-table>
+    </div>
 </template>
 
 
@@ -77,9 +119,27 @@ export default {
       strategy:"",
       flag1:0,
       flag2:0,
+      options:[{
+          value: "OBV",
+          label: "OBV"
+        }, {
+          value: "EMA",
+          label: "EMA"
+        }, {
+          value: "ATR",
+          label: "ATR"
+        }, {
+          value: "AD",
+          label: "AD"
+        }, {
+          value: "ROC",
+          label: "ROC"
+        }],
       gaFactorList:[],
       gaFactors:[],
-      IC:{}
+      IC:{},
+      mode:"",
+      new_gaFactorList:[]
     }
   },
   mounted(){
@@ -97,10 +157,14 @@ export default {
     },
     flag(){
       return this.flag1*this.flag2;
+    },
+    factorlist(){
+      return this.new_gaFactors;
     }
   },
   methods:{
      getAsset(){
+      console.log(Object.keys(this.IC))
       const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D";
       //const path = "http://127.0.0.1:5000/"+this.asset_code+"/st="+this.start_time+"ed="+this.end_time+"freq="+this.frequency;
       axios
@@ -114,13 +178,14 @@ export default {
          });
      },
      getGpFactors(){
-      const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/['OBV','EMA','ATR','AD','ROC']/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
-      // const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/"+this.gaFactorList+"/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
+      // const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/['OBV','EMA','ATR','AD','ROC']/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
+      const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D/[\""+this.gaFactorList.join("\",\"")+"\"]/gr=2ps=20ts=10hof=20comp=2method=half%20and%20halfdepth=(2,4)";
       axios
          .get(path)
          .then(res => {
            this.gaFactors=eval(res.data)['factors'];
            this.IC = eval(res.data)['IC'];
+           this.new_gaFactorList = Object.keys(this.IC);
            console.log(this.gaFactors);
            console.log(this.IC);
          })
@@ -164,6 +229,43 @@ export default {
       console.log(this.asset_show);
      },
  
+     show_gaFactors(){
+      for(let i = 0; i < this.gaFactors.length;i++){
+        let t = new Date(this.asset[i]['trade_time']);
+        let y = t.getFullYear();
+        let m = t.getMonth();
+        m = m<10?'0'+m:m;
+        let d = t.getDate();
+        d = d<10?'0'+d:d;
+        let h = t.getHours();
+        h = h<10?'0'+h:h;
+        let minute = t.getMinutes();
+        minute = minute<10?'0'+minute:minute;
+        let tmp = {}
+        tmp['ts_code']=this.asset[i]['ts_code']
+        tmp['trade_time'] = y+'-'+m+'-'+d+' '+h+':'+minute;
+        tmp[this.factor1] = this.asset[i][this.factor1]
+        tmp[this.factor2] = this.asset[i][this.factor2]
+        if(this.operator=="+"){
+          tmp["new_factor"]=tmp[this.factor1]+tmp[this.factor2];
+        }
+        if(this.operator=="-"){
+          tmp["new_factor"]=tmp[this.factor1]-tmp[this.factor2];
+        }
+        if(this.operator=="x"){
+          tmp["new_factor"]=tmp[this.factor1]*tmp[this.factor2];
+        }
+        if(this.operator=="÷"){
+          tmp["new_factor"]=tmp[this.factor1]/tmp[this.factor2];
+        }
+        if(i < 200){
+          this.asset_show.push(tmp);
+        }
+      }
+      console.log(this.asset_show);
+     },
+ 
+
      //ATR strategy的函数实现
      Draw(column){
       let feature = column.label;        
@@ -255,7 +357,7 @@ export default {
       }
   },
   created(){
-    this.getGpFactors();
+    // this.getGpFactors();
   },
   beforeUnmount() {
   },
@@ -269,6 +371,10 @@ export default {
     },
     factor2(){
       this.flag2=1;
+    },
+    factorlist(){
+      // this.new_gaFactorList = Object.keys(eval(res.data)['IC']);
+      console.log(this.new_gaFactorList);
     }
 }
 };
@@ -433,6 +539,17 @@ z-index:98;
   margin-left:10px;
 }
 
+.gaFactor-select{
+  position:absolute;
+  top:90px;
+  left:10px;
+  width:420px;
+  height:40px;
+  margin-top:5px;
+  margin-bottom:5px;
+  margin-left:10px;
+}
+
 .factor-button{
 display: flex;
 position: absolute;
@@ -451,6 +568,72 @@ cursor: pointer;
 display: inline-block;
 font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
 font-size: 15px;
+font-weight: 520;
+line-height: 10px;
+padding: 5px 5px;
+text-align: center;
+text-decoration: none;
+justify-content:space-evenly;
+align-items: center;
+align-content:stretch;
+user-select: none;
+-webkit-user-select: none;
+touch-action: manipulation;
+vertical-align: middle;
+white-space: nowrap;
+}
+
+.basic-button{
+display: flex;
+position: absolute;
+top: 50px;
+left:560px;
+width: 50px;
+height: 25px;
+appearance: none;
+background-color: #455a64;
+border: 1px solid rgba(27, 31, 35, .15);
+border-radius: 5px;
+box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+box-sizing: border-box;
+color: #fff;
+cursor: pointer;
+display: inline-block;
+font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+font-size: 14px;
+font-weight: 520;
+line-height: 10px;
+padding: 5px 5px;
+text-align: center;
+text-decoration: none;
+justify-content:space-evenly;
+align-items: center;
+align-content:stretch;
+user-select: none;
+-webkit-user-select: none;
+touch-action: manipulation;
+vertical-align: middle;
+white-space: nowrap;
+}
+
+.ga-button{
+display: flex;
+position: absolute;
+top: 50px;
+left:620px;
+width: 140px;
+height: 25px;
+appearance: none;
+background-color: #455a64;
+border: 1px solid rgba(27, 31, 35, .15);
+border-radius: 5px;
+box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+box-sizing: border-box;
+color: #fff;
+cursor: pointer;
+display: inline-block;
+font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+font-size: 14px;
 font-weight: 520;
 line-height: 10px;
 padding: 5px 5px;
