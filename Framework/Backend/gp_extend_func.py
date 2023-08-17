@@ -2,6 +2,26 @@ import numpy as np
 import pandas as pd
 
 
+def get_gp_xy(basic_data, train_long):
+    data = basic_data.drop(columns=['return', 'return+-1'])
+    data = data.values
+    target = basic_data['return'].values
+    target_ = basic_data['return+-1'].values
+    gp_x = np.nan_to_num(data)
+    gp_y = np.nan_to_num(target_)
+
+    X_train = np.nan_to_num(data[:train_long])
+    Y_train = np.nan_to_num(target[:train_long])
+
+    X_test = np.nan_to_num(data[train_long:])
+    Y_test = np.nan_to_num(target[train_long:])
+
+    X_train_ = np.nan_to_num(data[:train_long])
+    Y_train_ = np.nan_to_num(target_[:train_long])
+
+    return gp_x, gp_y, X_train_, Y_train_, X_train, Y_train, X_test, Y_test
+
+
 def protected_division(x1, x2):
     with np.errstate(divide='ignore', invalid='ignore'):
         return np.where(np.abs(x2) > 0.001, np.divide(x1, x2), 1.)

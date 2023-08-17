@@ -5,7 +5,7 @@
   <input class="time-frequency" type="text" v-model.lazy = "frequency" placeholder="Input Frequency">
   <div class = "basic-button" @click="mode='basic'" type="submit">Basic</div>
   <div class = "ga-button" @click="mode='ga'" type="submit">Genetic Algorithm</div>
-
+  <svg id = "IC" class="ic" style = 'width:300px; height:200px'></svg>
   <div id="basic-cal" v-if="mode=='basic'">
     <select class="factor1-select" v-model="factor1">
       <option disabled selected value>- Choose Factor 1</option>
@@ -58,8 +58,8 @@
 
       <div class = "factor-button" @click="getGpFactors()" type="submit">挖掘</div>
       <el-table id="DataTable"
-          v-if="new_gaFactorList.length>0"
-          :data="gaFactors"
+          v-if="gaFactors_show.length==200"
+          :data="gaFactors_show"
           @header-click="Draw"
           height="480"
           :header-cell-style="{'text-align':'center'}"
@@ -83,6 +83,7 @@
         
       </el-table>
     </div>
+
 </template>
 
 
@@ -99,7 +100,7 @@ export default {
       asset:[],
       asset_show:[],
       feature_show:[],
-      width: 490,
+      width: 300,
       height: 200,
       margin:{
         top:20,
@@ -139,7 +140,8 @@ export default {
       gaFactors:[],
       IC:{},
       mode:"",
-      new_gaFactorList:[]
+      new_gaFactorList:[],
+      gaFactors_show:[]
     }
   },
   mounted(){
@@ -159,7 +161,7 @@ export default {
       return this.flag1*this.flag2;
     },
     factorlist(){
-      return this.new_gaFactors;
+      return this.new_gaFactorList;
     }
   },
   methods:{
@@ -230,8 +232,8 @@ export default {
      },
  
      show_gaFactors(){
-      for(let i = 0; i < this.gaFactors.length;i++){
-        let t = new Date(this.asset[i]['trade_time']);
+      for(let i = 0; i < 200;i++){
+        let t = new Date(this.gaFactors[i]['open_time']);
         let y = t.getFullYear();
         let m = t.getMonth();
         m = m<10?'0'+m:m;
@@ -242,27 +244,18 @@ export default {
         let minute = t.getMinutes();
         minute = minute<10?'0'+minute:minute;
         let tmp = {}
-        tmp['ts_code']=this.asset[i]['ts_code']
-        tmp['trade_time'] = y+'-'+m+'-'+d+' '+h+':'+minute;
-        tmp[this.factor1] = this.asset[i][this.factor1]
-        tmp[this.factor2] = this.asset[i][this.factor2]
-        if(this.operator=="+"){
-          tmp["new_factor"]=tmp[this.factor1]+tmp[this.factor2];
+        // tmp['ts_code']=this.asset[i]['ts_code']
+        tmp['open_time'] = y+'-'+m+'-'+d+' '+h+':'+minute;
+        for(let s=0;s<this.gaFactorList.length;s++ ){
+          tmp[this.gaFactorList[s]] = this.gaFactors[i][this.new_gaFactorList[s]];
         }
-        if(this.operator=="-"){
-          tmp["new_factor"]=tmp[this.factor1]-tmp[this.factor2];
+        for(let s=0;s<this.new_gaFactorList.length;s++ ){
+          tmp[this.new_gaFactorList[s]] = this.gaFactors[i][this.new_gaFactorList[s]];
         }
-        if(this.operator=="x"){
-          tmp["new_factor"]=tmp[this.factor1]*tmp[this.factor2];
-        }
-        if(this.operator=="÷"){
-          tmp["new_factor"]=tmp[this.factor1]/tmp[this.factor2];
-        }
-        if(i < 200){
-          this.asset_show.push(tmp);
-        }
+        
+        this.gaFactors_show.push(tmp);
       }
-      console.log(this.asset_show);
+      console.log(this.gaFactors_show);
      },
  
 
@@ -341,6 +334,74 @@ export default {
         .attr('stroke',"#3366ff")
      },
 
+
+     Scale(){
+        //const gap = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        const g = d3.select('#IC').append('g').attr('id', 'ICscale')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+        // const b = 30000;
+        // const a = -30000;
+        // var [a,b] = d3.extent(this.IC)
+        
+        let that = this;
+        const xscale = d3.scaleLinear()
+                         .domain([0,that.new_gaFactorList.length])
+                         .range([0, this.innerWidth]);
+        const yscale = d3.scaleLinear()
+                         .domain([1,0])
+                         .range([0,this.innerHeight]);
+        // console.log([a,b])
+        const yaxis = d3.axisLeft(yscale)
+                        .ticks(10)
+                        .tickSize(5)
+                        .tickPadding(5);
+        const xaxis = d3.axisBottom(xscale)
+                        .ticks(20)
+                        .tickSize(-5)
+                        .tickPadding(5)
+                        .tickFormat(function(d,i){
+                          return (i>0)?(that.new_gaFactorList[i-1]):""
+                        })
+                       g.append('g').call(yaxis)
+                        .attr('id' ,'yaxis');
+                       g.append('g').call(xaxis)
+                        .attr('id', 'xaxis');
+  
+    },
+  
+    drawIC(){
+      let that = this;
+      //const b = d3.max(this.orders_aggregated, function(m){return d3.max(m['value'],d=>d['filled_value']);});
+      //const a = d3.min(this.orders, function(m){return d3.min(m['value'],d=>d['filled_value']);});
+      // const b = 30000;
+      // const a = -30000;
+
+      // var [a,b] = d3.extent(this.IC)
+
+      const xscale = d3.scaleLinear()
+                         .domain([0,that.new_gaFactorList.length])
+                         .range([0, this.innerWidth]);
+      const yscale = d3.scaleLinear()
+                         .domain([1,0])
+                         .range([0, this.innerHeight]);
+      // console.log([a,b])
+
+      const g = d3.select('#IC').append('g').attr('id', 'ICview')
+                  .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+
+      g.selectAll('.bar')
+       .data(that.IC).enter()
+       .append("rect")
+       .attr('class', 'bar')
+       .attr("x", function(d,i) {console.log(d); return xscale(i+0.5); })
+       .attr("y", function(d) { return yscale(d); })
+       .attr("height", function(d) { return Math.abs(yscale(d)); })
+       .attr("width", this.innerWidth/this.new_gaFactorList.length/2)
+       .attr("fill", "blue")
+       .attr("stroke", "#000"); 
+
+    },
+
   colorbox(sel, size, colors){
     var [x0,x1] = d3.extent( colors.domain());
     var bars = d3.range( x0, x1, (x1-x0)/size[1]);
@@ -375,6 +436,9 @@ export default {
     factorlist(){
       // this.new_gaFactorList = Object.keys(eval(res.data)['IC']);
       console.log(this.new_gaFactorList);
+      this.show_gaFactors();
+      this.Scale();
+      this.drawIC();
     }
 }
 };
@@ -649,39 +713,6 @@ vertical-align: middle;
 white-space: nowrap;
 }
 
-.price-button{
-display: flex;
-position: absolute;
-top: 50px;
-left:675px;
-width: 90px;
-height: 25px;
-appearance: none;
-background-color: #455a64;
-border: 1px solid rgba(27, 31, 35, .15);
-border-radius: 5px;
-box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
-box-sizing: border-box;
-color: #fff;
-cursor: pointer;
-display: inline-block;
-font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-font-size: 15px;
-font-weight: 520;
-line-height: 10px;
-padding: 5px 5px;
-text-align: center;
-text-decoration: none;
-justify-content:space-evenly;
-align-items: center;
-align-content:stretch;
-user-select: none;
--webkit-user-select: none;
-touch-action: manipulation;
-vertical-align: middle;
-white-space: nowrap;
-}
-
 #DataTable{
   top:100px;
   left:20px;
@@ -695,5 +726,11 @@ white-space: nowrap;
   position:absolute;
   top:380px;
   left:670px;
+}
+
+.ic{
+  position:absolute;
+  top:150px;
+  left:700px;
 }
 </style>
