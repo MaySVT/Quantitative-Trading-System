@@ -3,9 +3,11 @@
   <input class="time-start" type="text" v-model.lazy = "start_time" placeholder="Input Start Time">
   <input class="time-end" type="text" v-model.lazy = "end_time" placeholder="Input End Time">
   <input class="time-frequency" type="text" v-model.lazy = "frequency" placeholder="Input Frequency">
-  <div class = "basic-button" @click="mode='basic'" type="submit">Basic</div>
+  <div class = "basic-button" @click="getLayers()" type="submit">Basic</div>
+  <!--div class = "basic-button" @click="mode='basic'" type="submit">Basic</div-->
   <div class = "ga-button" @click="mode='ga'" type="submit">Genetic Algorithm</div>
-  <svg id = "IC" class="ic" style = 'width:300px; height:200px'></svg>
+  <svg id = "IC" class="ic" style = 'width:450px; height:210px'></svg>
+  <svg id = "Layer" class="ly" style = 'width:450px; height:210px'></svg>
   <div id="basic-cal" v-if="mode=='basic'">
     <select class="factor1-select" v-model="factor1">
       <option disabled selected value>- Choose Factor 1</option>
@@ -47,6 +49,10 @@
       </el-table>
     </div>
     <div id="ga_factor_mining" v-if="mode=='ga'">
+      <div>
+        <progress :value="progress" max="100"></progress>
+        <p>{{ progressMessage }}</p>
+      </div>
       <el-select class="gaFactor-select" v-model="gaFactorList" multiple placeholder="请选择需要进行挖掘的初代因子">
         <el-option
           v-for="(item,index) in options"
@@ -60,7 +66,7 @@
       <el-table id="DataTable"
           v-if="gaFactors_show.length==200"
           :data="gaFactors_show"
-          @header-click="Draw"
+          @header-click="getLayers,DrawLayers"
           height="480"
           :header-cell-style="{'text-align':'center'}"
           style="width:50%">
@@ -83,12 +89,13 @@
         
       </el-table>
     </div>
-
+    
 </template>
 
 
 <script>
 import axios from 'axios'
+//import io from 'socket.io-client'
 import * as d3 from 'd3'
 
 export default {
@@ -100,11 +107,11 @@ export default {
       asset:[],
       asset_show:[],
       feature_show:[],
-      width: 300,
+      width: 450,
       height: 200,
       margin:{
         top:20,
-        right:10,
+        right:15,
         bottom:10,
         left:50
       },
@@ -141,11 +148,21 @@ export default {
       IC:{},
       mode:"",
       new_gaFactorList:[],
-      gaFactors_show:[]
+      gaFactors_show:[],
+      progress: 0,
+      progressMessage: '',
+      layer:[]
     }
   },
   mounted(){
+      // // 建立与后端的 WebSocket 连接
+      // const socket = io('http://localhost:5000');
 
+      // // 监听后端发送的 'genetic_algorithm_progress' 事件
+      // socket.on('genetic_algorithm_progress', (data) => {
+      //   this.progress = data.progress;
+      //   this.progressMessage = data.message;
+      // });
   },
   computed:{
     innerWidth(){
@@ -162,6 +179,9 @@ export default {
     },
     factorlist(){
       return this.new_gaFactorList;
+    },
+    layers(){
+      return this.layer;
     }
   },
   methods:{
@@ -195,6 +215,39 @@ export default {
            console.error(error);
          });
      },
+     genetic_algorithm_progress() {
+      // try {
+      //   // 发起后端请求开始遗传算法
+      //   const response = await axios.post('/start_genetic_algorithm');
+        
+      //   // 通过WebSocket监听进度信息的更新
+      //   const socket = new WebSocket('ws://your-backend-websocket-url');
+        
+      //   socket.addEventListener('message', (event) => {
+      //     const data = JSON.parse(event.data);
+      //     this.progress = data.progress;
+      //     this.progressMessage = data.message;
+      //   });
+      // } catch (error) {
+      //   console.error('Error starting genetic algorithm:', error);
+      // }
+
+    },
+
+    getLayers(){
+      const path = "http://127.0.0.1:5000/layers/metal/ATR"; 
+      axios
+         .get(path)
+         .then(res => {
+           this.layer=res.data;
+           console.log(this.layer);
+         })
+         .catch(error => {
+           console.error(error);
+         });
+     },
+
+
      convertTime(){
       for(let i = 0; i < this.asset.length;i++){
         let t = new Date(this.asset[i]['trade_time']);
@@ -258,83 +311,6 @@ export default {
       console.log(this.gaFactors_show);
      },
  
-
-     //ATR strategy的函数实现
-     Draw(column){
-      let feature = column.label;        
-      console.log(feature)
-      if (feature=="Trade Time" || feature=="vol"||feature=="amount"){
-        return
-      }
-      d3.select('#Price').selectAll('g').remove()
-      //d3.select('#priceCurve').remove()
-      const g = d3.select('#Price').append('g').attr('id', 'Pricesscale')
-                  .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-               
-      //防止代码中将this错认为当前数据，用that代替全局的this
-      let that = this;
-      var temp = [];
-      for (let j = 0; j < that.asset.length;j++){
-        temp.push(that.asset[j][feature]);
-      }
-      //设置x轴、y轴的映射函数，将数据映射到x、y轴坐标上
-      var [a,b] = d3.extent(temp);
-
-      console.log(a,b)
-      const xscale = d3.scaleLinear()
-                       .domain([0,that.asset.length])
-                       .range([0, this.innerWidth]);
-      const yscale = d3.scaleLinear()
-                       .domain([b,a])
-                       .range([0, this.innerHeight]);
-      
-      const yaxis = d3.axisLeft(yscale)
-                      .ticks(10)
-                      .tickSize(5)
-                      .tickPadding(2)
-                      .tickFormat(function(d){
-                        return d;
-                      })
-      const xaxis = d3.axisBottom(xscale)
-                      .ticks(20)
-                      .tickSize(-5)
-                      .tickPadding(-15)
-                      .tickFormat(function(d){
-                        //return i;
-                        //console.log(that.asset[d]['trade_time'])
-                        return d<that.asset.length?that.asset[d]['trade_time'].slice(5,10):that.asset[d-1]['trade_time'].slice(5,10);
-                      })
-                     g.append('g').call(yaxis)
-                      .attr('id' ,'yaxis');
-                     g.append('g').call(xaxis)
-                      .attr('id', 'xaxis')
-                      
-                     d3.select('#xaxis')
-                       .selectAll('.tick')
-                       .selectAll('text')
-                       .attr("font-size","9px");
-
-      //选择id为'Classics'的svg，增添g并取id为classicCurve，移动画布使其与设置的margin对其
-      const g2 = d3.select('#Price').append('g').attr('id', 'priceCurve')
-                  .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-      
-      //设置旗帜为ATR，表示按下了ATR按钮
-      that.flag=feature;
-   
-      //设置折线图的映射函数，会将数据映射为每个点的坐标/每条线段的路径值
-      const line = d3.line()
-                     .x(function(d,i){return xscale(i)})
-                     .y(function(d){return yscale(d)})
-                     .curve(d3.curveLinear)
-    
-      //在g上增添路径path，并将目标画线的数据传入line映射函数中
-      g2.append('path')
-        .attr('d',line(temp))
-        .attr('fill','none')
-        .attr('stroke',"#3366ff")
-     },
-
-
      Scale(){
         //const gap = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
         const g = d3.select('#IC').append('g').attr('id', 'ICscale')
@@ -348,7 +324,7 @@ export default {
                          .domain([0,that.new_gaFactorList.length])
                          .range([0, this.innerWidth]);
         const yscale = d3.scaleLinear()
-                         .domain([1,0])
+                         .domain([1,-1])
                          .range([0,this.innerHeight]);
         // console.log([a,b])
         const yaxis = d3.axisLeft(yscale)
@@ -356,17 +332,22 @@ export default {
                         .tickSize(5)
                         .tickPadding(5);
         const xaxis = d3.axisBottom(xscale)
-                        .ticks(20)
+                        .ticks(that.new_gaFactorList.length)
                         .tickSize(-5)
                         .tickPadding(5)
                         .tickFormat(function(d,i){
                           return (i>0)?(that.new_gaFactorList[i-1]):""
                         })
+                        //.transform(`translate(${0},${this.innerHeight/2})`);
+
                        g.append('g').call(yaxis)
                         .attr('id' ,'yaxis');
-                       g.append('g').call(xaxis)
-                        .attr('id', 'xaxis');
-  
+             const x = g.append('g').call(xaxis)
+                        .attr('id', 'xaxis')
+                        .attr('transform',`translate(${0},${this.innerHeight/2})`);
+                       x.selectAll('text') // 选择所有x轴刻度文字
+                        .style('text-anchor', 'end') // 设置文字锚点为末尾
+                        .attr('transform', 'rotate(-30) translate(0, 0)');
     },
   
     drawIC(){
@@ -377,12 +358,12 @@ export default {
       // const a = -30000;
 
       // var [a,b] = d3.extent(this.IC)
-
+      console.log()
       const xscale = d3.scaleLinear()
                          .domain([0,that.new_gaFactorList.length])
                          .range([0, this.innerWidth]);
       const yscale = d3.scaleLinear()
-                         .domain([1,0])
+                         .domain([1,-1])
                          .range([0, this.innerHeight]);
       // console.log([a,b])
 
@@ -390,15 +371,109 @@ export default {
                   .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
       g.selectAll('.bar')
-       .data(that.IC).enter()
+       .data(that.new_gaFactorList).enter()
        .append("rect")
        .attr('class', 'bar')
        .attr("x", function(d,i) {console.log(d); return xscale(i+0.5); })
-       .attr("y", function(d) { return yscale(d); })
-       .attr("height", function(d) { return Math.abs(yscale(d)); })
-       .attr("width", this.innerWidth/this.new_gaFactorList.length/2)
-       .attr("fill", "blue")
-       .attr("stroke", "#000"); 
+       .attr("y", function(d) { return yscale(that.IC[d]>0?that.IC[d]:0); })
+       .attr("height", function(d) { return  Math.abs(yscale(0) - yscale(that.IC[d])); })
+       .attr("width", that.innerWidth/this.new_gaFactorList.length/2)
+       .attr("fill", "#009966")
+       .attr("stroke", "#000")
+       .on("mouseover",function(){
+        let d =d3.select(this).data();
+        var str = 'IC:' + that.IC[d[0]];
+        var t = 60+ yscale(that.IC[d[0]]);
+        
+        d3.selectAll('.tooltip')
+          .html(str)
+               .style("left", (xscale(d[0]['id'])+595)+"px")
+               .style("top", (t)+"px")
+               .style("opacity",1.0);
+    })
+      .on("mouseleave",function(){
+            d3.select('#Tip')
+              .selectAll('.tooltip')
+              .style("opacity",0.0);
+          })
+; 
+
+    },
+
+    DrawLayers(){
+      const g = d3.select('#Layer').append('g').attr('id', 'Layerscale')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+        // const b = 30000;
+        // const a = -30000;
+        // var [a,b] = d3.extent(this.IC)
+        
+        let that = this;
+        const xscale = d3.scaleLinear()
+                         .domain([1579651200000,1671148800000])
+                         .range([0, this.innerWidth]);
+        const yscale = d3.scaleLinear()
+                         .domain([2,0])
+                         .range([0,this.innerHeight]);
+        // console.log([a,b])
+        const yaxis = d3.axisLeft(yscale)
+                        .ticks(10)
+                        .tickSize(5)
+                        .tickPadding(5);
+        const xaxis = d3.axisBottom(xscale)
+                        .ticks(10)
+                        .tickSize(-5)
+                        .tickPadding(5)
+                        .tickFormat(function(d,i){
+                          let t = new Date(d);
+                          let y = t.getFullYear();
+                          let m = t.getMonth();
+                          m = m<10?'0'+m:m;
+                          let date = t.getDate();
+                          date = date<10?'0'+date:date;                  
+                          return (i>0)?(y+'-'+m+'-'+date):""
+                        })
+                        
+
+                       g.append('g').call(yaxis)
+                        .attr('id' ,'yaxis');
+             const x = g.append('g').call(xaxis)
+                        .attr('id', 'xaxis')
+                        .attr('transform',`translate(${0},${this.innerHeight/2})`);
+                       x.selectAll('text') // 选择所有x轴刻度文字
+                        .style('text-anchor', 'end') // 设置文字锚点为末尾
+                        .attr('transform', 'rotate(-30) translate(0, 0)');
+
+            const line = d3.line()
+                         .x(function(d){return xscale(d['date'])}) // x轴坐标
+                         .y(function(d){return yscale(d['1D'])}) // y
+                         .curve(d3.curveLinear);
+
+  
+            const g2 = d3.select('#Layer').append('g').attr('id', 'LayerCurve')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+            
+            const colors = ['red','orange','blue','green','yellow']
+
+                      // // 绑定数据并绘制折线
+                      // svg.selectAll(".line")
+                      //   .data(that.layer)
+                      //   .enter()
+                      //   .append("path")
+                      //   .attr("class", "line")
+                      //   .attr("d", d => line(d))
+                      //   .attr("stroke", (d, i) => colors[i]); // 可以设置不同折线的颜色
+
+
+      
+        //在g上增添路径path，并将目标画线的数据传入line映射函数中
+        g2.selectAll('path')
+          .data(that.layer)
+          .enter()
+          .append('path')
+          .attr('d',function(d){return line(d)})
+          .attr('fill','none')
+          .attr('stroke',function(d,i){return colors[i];})
+  
 
     },
 
@@ -439,6 +514,10 @@ export default {
       this.show_gaFactors();
       this.Scale();
       this.drawIC();
+    },
+    layers(){
+      console.log('Draw');
+      this.DrawLayers();
     }
 }
 };
@@ -714,7 +793,8 @@ white-space: nowrap;
 }
 
 #DataTable{
-  top:100px;
+  position:absolute;
+  top:135px;
   left:20px;
 }
 #Price{
@@ -731,6 +811,12 @@ white-space: nowrap;
 .ic{
   position:absolute;
   top:150px;
+  left:700px;
+}
+
+.ly{
+  position:absolute;
+  top:360px;
   left:700px;
 }
 </style>

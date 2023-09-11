@@ -4,12 +4,12 @@ from flask_cors import CORS
 import string
 # from sqlalchemy import ForeignKey, create_engine
 # from sqlalchemy.engine import URL
-# import psycopg2
+import alphalens as al
 import requests
 import string
 import math
 import json
-# import simplejson
+import re
 import copy
 import random
 import pandas as pd
@@ -31,6 +31,8 @@ from gp_extend_func import *
 from gplearn import genetic
 import gplearn
 from factor import factor
+from flask_socketio import emit, SocketIO
+
 
 sys.path.append(r'.\system strategy')
 from R_breaker import R_breaker
@@ -41,6 +43,7 @@ from genetic_algorithm import ga
 
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app)
 
 # 注释处代码为需要连接自建数据库时使用
 '''class c_overview(db.Model):
@@ -53,6 +56,8 @@ token='bdb08afc499e166575426cccc5aae85ae04cdb4196cd512ef310d04e'
 ts.set_token(token)
 pro = ts.pro_api()
 index = 1
+
+futures = {'metal':['AU','AG','CU','AL','ZN','PB','NI','SN','SS','RB']}
 
 def time_tran(time):
         '''
@@ -383,5 +388,81 @@ def gene(ts_code,start_time,end_time,frequency,factor_list,generations,populatio
     IC = result.IC()
     return "{\"factors\":"+data.to_json(orient="records", force_ascii=False)+",\"IC\":"+json.dumps(IC)+'}'
 
+# @socketio.on('genetic_algorithm_progress')
+# def handle_genetic_algorithm_progress(data):
+
+
+@app.route('/layers/<kind>/<factor_name>')
+def layer(kind,factor_name):
+    df = pd.read_csv(r"D:\upenn大三下\denghui project\Quantitative-Trading-System\国内期货日交易数据163250758(仅供复旦大学使用)\FUT_Fdt.csv",usecols=[0,1,3,4,5,6,7,9,10],header=0,names=['Date','Code','Exchange','Open','High','Low','Close','Volume','Position'])
+    df['Type'] = df['Code'].apply(lambda x: re.search('[A-Za-z]+', x).group())
+    SH = df[df['Exchange']=='SHFE']
+    Metal = futures[kind]
+    F_metal = SH[SH['Type'].isin(Metal)]
+    grouped = F_metal.groupby('Type')
+
+    continuous_data = pd.DataFrame()
+
+    # 定义加权平均函数
+    def weighted_average(group):
+        weighted_sum = pd.DataFrame()
+        weighted_sum['open'] = pd.Series((group['Open'] * group['Position']).sum())
+        weighted_sum['high'] = (group['High'] * group['Position']).sum()
+        weighted_sum['low'] = (group['Low'] * group['Position']).sum()
+        weighted_sum['close'] = (group['Close'] * group['Position']).sum()
+        weighted_sum['volume'] = (group['Volume'] * group['Position']).sum()
+        total_position = group['Position'].sum()
+        # print(weighted_sum/total_position)
+        return weighted_sum / total_position
+
+    for type, group in grouped:
+        # 按照交易日期排序
+        group = group.sort_values(by='Date')
+        continuous_price = group.groupby('Date').apply(weighted_average).reset_index()
+        
+        # 创建连续合约数据
+        continuous_price['type'] = type
+        continuous_data = pd.concat([continuous_data, continuous_price])
+        # continuous_data.append(continuous_price)
+
+    continuous_df = pd.DataFrame(continuous_data)
+    
+    groups = continuous_df.groupby('type')
+    for type, group in groups:
+        ft = factor(group)
+        getattr(ft, f'get_{factor_name}')()
+        continuous_df.loc[continuous_df['type']==type,factor_name]=ft.get_df()[factor_name]
+    
+    continuous_df['Date'] = pd.to_datetime(continuous_df['Date'])
+    continuous_df['Date'] = continuous_df['Date'].dt.tz_localize('UTC')
+    factors = continuous_df[['Date','type',factor_name]].sort_values(by=['Date'],ascending=True)
+    factors.dropna(inplace=True)
+    factors.set_index(['Date','type'],inplace=True)
+    price = continuous_df[['Date','type','close']].sort_values(by=['Date'],ascending=True)
+    price = price.pivot(index='Date', columns='type', values='close')
+
+    analysis = al.utils.get_clean_factor_and_forward_returns(
+        factors,
+        price,
+        quantiles=5,  # Number of quantiles to divide the factor into
+        periods=(1, 5, 10),  # Lookahead periods for forward returns
+    )
+    df = pd.DataFrame()
+    for i in range(1,6):
+        group = analysis[analysis['factor_quantile']==i].groupby('date').mean()[['1D','factor_quantile']]
+        df = pd.concat([df,group])
+    df = df.reset_index().sort_values(by=['factor_quantile','date'],ascending=True)
+    df['1D'] = 1+df['1D']
+    df['1D']=df[['1D','factor_quantile']].groupby('factor_quantile').cumprod()
+    # df.set_index(['date','factor_quantile'],inplace=True)
+    groups = df.groupby('factor_quantile')
+    layers = []
+    for quantile, group in groups:
+        layers.append(eval(group.to_json(orient="records",force_ascii=False)))
+    return layers
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    # socketio.run(app)
+    socketio.run(app, debug=True)

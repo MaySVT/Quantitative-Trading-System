@@ -7,6 +7,7 @@ from gp_extend_func import *
 from gplearn import genetic
 import gplearn
 from factor import factor
+from flask_socketio import SocketIO, emit
 
 class ga:
     def __init__(self, df,factor_list):
@@ -59,7 +60,7 @@ class ga:
         return init_function+user_function
     
 
-    def gp(self,generations = 3,population_size = 20,tournament_size = 10,hall_of_fame = 20,
+    def gp(self, generations = 3,population_size = 20,tournament_size = 10,hall_of_fame = 20,
             n_components = 5,random_state=666,n_jobs = -1,
             init_method ='half and half',init_depth =(2,4)):
 
@@ -78,7 +79,22 @@ class ga:
                                 init_depth = init_depth,
                                 verbose=1
                                 )
-        gp_.fit(self.get_data()[self.factor_list][:-1], self.get_data()['pnl'][1:])
+        X = self.get_data()[self.factor_list][:-1]
+        y = self.get_data()['pnl'][1:]
+
+        # for generation in range(generations):
+        #     gp_.generation = generation  # 设置当前代数
+        #     gp_.run(X, y)  # 执行遗传算法的一代操作
+
+        #     progress = (generation + 1) / generations * 100
+        #     message = f"Generation {generation + 1}/{generations}"
+
+        #     emit('genetic_algorithm_progress', {
+        #         'progress': progress,
+        #         'message': message
+        #     })
+        #     socketio.sleep(1)  
+        gp_.fit(X,y)
 
         for g in gp_:
             self.new_factor_list.append(str(g))
@@ -96,3 +112,29 @@ class ga:
         for c in self.factor_list+self.new_factor_list:
             tmp[c] = self.data[c][:-1].corr(self.data['pnl'][1:])
         return tmp
+    
+
+from gplearn.genetic import SymbolicRegressor
+
+from flask_socketio import emit  # 假设你在Flask中使用SocketIO来进行WebSocket通信
+
+class CustomSymbolicRegressor(SymbolicRegressor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.total_generations = kwargs.get('generations', 50)
+
+    def run(self):
+        for generation in range(self.total_generations):
+            self._generation = generation
+            super().run()
+            
+            # 获取当前代数和进度信息
+            progress = (generation + 1) / self.total_generations * 100
+            message = f"Generation {generation + 1}/{self.total_generations}"
+            
+            # 将进度信息发送到前端
+            emit('genetic_algorithm_progress', {
+                'progress': progress,
+                'message': message
+            })
+
