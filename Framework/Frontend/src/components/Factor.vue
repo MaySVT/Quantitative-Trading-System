@@ -8,6 +8,7 @@
   <div class = "ga-button" @click="mode='ga'" type="submit">Genetic Algorithm</div>
   <svg id = "IC" class="ic" style = 'width:450px; height:210px'></svg>
   <svg id = "Layer" class="ly" style = 'width:450px; height:210px'></svg>
+
   <div id="basic-cal" v-if="mode=='basic'">
     <select class="factor1-select" v-model="factor1">
       <option disabled selected value>- Choose Factor 1</option>
@@ -88,6 +89,16 @@
           </el-table-column>
         
       </el-table>
+      <input type="checkbox" id='layer1-select' class="layer1-selector" v-model="manifest[0]" @change="layer_manifest(1)"/>
+      <input type="checkbox" id='layer2-select' class="layer2-selector" v-model="manifest[1]" @change="layer_manifest(2)"/>
+      <input type="checkbox" id='layer3-select' class="layer3-selector" v-model="manifest[2]" @change="layer_manifest(3)"/>
+      <input type="checkbox" id='layer4-select' class="layer4-selector" v-model="manifest[3]" @change="layer_manifest(4)"/>
+      <input type="checkbox" id='layer5-select' class="layer5-selector" v-model="manifest[4]" @change="layer_manifest(5)"/>
+      <p v-text="'Layer 1'" style="position:absolute; top:535px; left:820px;font-size:smaller;"></p>
+      <p v-text="'Layer 2'" style="position:absolute; top:535px; left:970px;font-size:smaller;"></p>
+      <p v-text="'Layer 3'" style="position:absolute; top:535px; left:1080px;font-size:smaller;"></p>
+      <p v-text="'Layer 4'" style="position:absolute; top:555px; left:820px;font-size:smaller;"></p>
+      <p v-text="'Layer 5'" style="position:absolute; top:555px; left:970px;font-size:smaller;"></p>
     </div>
     
 </template>
@@ -110,7 +121,7 @@ export default {
       width: 450,
       height: 200,
       margin:{
-        top:20,
+        top:30,
         right:15,
         bottom:10,
         left:50
@@ -151,7 +162,8 @@ export default {
       gaFactors_show:[],
       progress: 0,
       progressMessage: '',
-      layer:[]
+      layer:[],
+      manifest:[true,true,true,true,true]
     }
   },
   mounted(){
@@ -412,7 +424,7 @@ export default {
                          .domain([1579651200000,1671148800000])
                          .range([0, this.innerWidth]);
         const yscale = d3.scaleLinear()
-                         .domain([2,0])
+                         .domain([2.8,0.3])
                          .range([0,this.innerHeight]);
         // console.log([a,b])
         const yaxis = d3.axisLeft(yscale)
@@ -426,7 +438,7 @@ export default {
                         .tickFormat(function(d,i){
                           let t = new Date(d);
                           let y = t.getFullYear();
-                          let m = t.getMonth();
+                          let m = t.getMonth()+1;
                           m = m<10?'0'+m:m;
                           let date = t.getDate();
                           date = date<10?'0'+date:date;                  
@@ -438,10 +450,10 @@ export default {
                         .attr('id' ,'yaxis');
              const x = g.append('g').call(xaxis)
                         .attr('id', 'xaxis')
-                        .attr('transform',`translate(${0},${this.innerHeight/2})`);
+                        .attr('transform',`translate(${0},${yscale(1)})`);
                        x.selectAll('text') // 选择所有x轴刻度文字
                         .style('text-anchor', 'end') // 设置文字锚点为末尾
-                        .attr('transform', 'rotate(-30) translate(0, 0)');
+                        .attr('transform', 'rotate(-30) translate(0, 5)');
 
             const line = d3.line()
                          .x(function(d){return xscale(d['date'])}) // x轴坐标
@@ -464,18 +476,39 @@ export default {
                       //   .attr("stroke", (d, i) => colors[i]); // 可以设置不同折线的颜色
 
 
-      
-        //在g上增添路径path，并将目标画线的数据传入line映射函数中
-        g2.selectAll('path')
-          .data(that.layer)
-          .enter()
-          .append('path')
-          .attr('d',function(d){return line(d)})
-          .attr('fill','none')
-          .attr('stroke',function(d,i){return colors[i];})
-  
+            for(let k = 1;k<=5;k++){
+              g2.append('path').attr('id','layer_curve'+k)
+                .attr('d',function(){return line(that.layer[k-1])})
+                .attr('fill','none')
+                .attr('stroke',function(){return colors[k-1];})
+                // .attr('visibility',function(){return })
+            }
 
     },
+
+  layer_manifest(k){
+    let that = this;
+        d3.select('#Layer')
+          .select('#layer_curve'+k)
+          .attr('visibility',function(){
+            if(that.manifest[k-1]){
+              return 'visible';
+            }else{
+              return 'hidden';
+            }
+          })
+
+        const colors = ['red','orange','blue','green','yellow']
+
+        d3.select('#layer'+k+'-select')
+          .style('border-color',function(){
+            if(that.manifest[k-1]){
+              return colors[k-1];
+            }else{
+              return 'lightgray';
+            }
+          })
+  },
 
   colorbox(sel, size, colors){
     var [x0,x1] = d3.extent( colors.domain());
@@ -518,6 +551,9 @@ export default {
     layers(){
       console.log('Draw');
       this.DrawLayers();
+    },
+    manifest(){
+      console.log(this.manifest);
     }
 }
 };
@@ -556,57 +592,6 @@ export default {
   text-align: center;
   opacity:0;
   z-index:99;
-}
-.panel-header {
-  position: absolute;
-  top: 90px;
-  left:10px;
-  padding: 2px 2px-2px 20px;
-  width: 60px;
-  height: 22px;
-  line-height: 18px;
-  font-size: 6px;
-  text-align: right;
-  background: #415c68;
-  color: #fcfcfc;
-  display: flex;
-  justify-content:space-evenly;
-  align-items: center;
-  align-content:stretch;
-  font-weight: bold;
-  border-radius: 1px;
-  box-shadow: 0 1px 2px rgba(26 26 26 0.2);
-  z-index:99;
-}
-
-.panel-header-end {
-  position: absolute;
-  top: 90px;
-  left:70px;
-  border-top: 22px solid #455a64;
-  border-right: 22px solid #ffffff;
-  border-bottom: 0px solid #ffffff;
-  z-index:98;
-}
-.pr{
-  position:absolute;
-  top:90px;
-  left:640px;
-}
-.pr-end{
-  position:absolute;
-  top:90px;
-  left:700px;
-}
-.vl{
-  position:absolute;
-  top:350px;
-  left:640px;
-}
-.vl-end{
-  position:absolute;
-  top:350px;
-  left:700px;
 }
 .asset-code{
 position: absolute;
@@ -810,13 +795,123 @@ white-space: nowrap;
 
 .ic{
   position:absolute;
-  top:150px;
+  top:100px;
   left:700px;
 }
 
 .ly{
   position:absolute;
-  top:360px;
+  top:350px;
   left:700px;
+}
+
+.layer1-selector {
+  position: absolute;
+  outline: none;
+  width: 13px;
+  height: 13px;
+  left:800px;
+  top:550px;
+
+  background-color: #ffffff;
+  border: solid 2px red;
+  -webkit-border-radius: 80%;
+  border-radius: 80%;
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.layer2-selector {
+  position: absolute;
+  outline: none;
+  width: 13px;
+  height: 13px;
+  left:930px;
+  top:550px;
+ 
+  background-color: #ffffff;
+  border: solid 2px orange;
+  -webkit-border-radius: 80%;
+  border-radius: 80%;
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.layer3-selector {
+  position: absolute;
+  outline: none;
+  width: 13px;
+  height: 13px;
+  left:1060px;
+  top:550px;
+
+  background-color: #ffffff;
+  border: solid 2px blue;
+  -webkit-border-radius: 80%;
+  border-radius: 80%;
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.layer4-selector {
+  position: absolute;
+  outline: none;
+  width: 13px;
+  height: 13px;
+  left:800px;
+  top:570px;
+
+  background-color: #ffffff;
+  border: solid 2px green;
+  -webkit-border-radius: 80%;
+  border-radius: 80%;
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.layer5-selector {
+  position: absolute;
+  outline: none;
+  width: 13px;
+  height: 13px;
+  left:930px;
+  top:570px;
+
+  background-color: #ffffff;
+  border: solid 2px yellow;
+  -webkit-border-radius: 80%;
+  border-radius: 80%;
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 </style>
