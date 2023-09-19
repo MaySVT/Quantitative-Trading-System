@@ -6,8 +6,13 @@
   <div class = "basic-button" @click="getLayers()" type="submit">Basic</div>
   <!--div class = "basic-button" @click="mode='basic'" type="submit">Basic</div-->
   <div class = "ga-button" @click="mode='ga'" type="submit">Genetic Algorithm</div>
+  <div class = "IC-title" type="submit">Factor IC</div>
+  <div class = "FI-title" type="submit">Xgboost Factor Importance</div>
+  <div class = "Layer-title" type="submit">Layer Backtest</div>
+
   <svg id = "IC" class="ic" style = 'width:450px; height:210px'></svg>
-  <svg id = "Layer" class="ly" style = 'width:450px; height:210px'></svg>
+  <svg id = "Layer" class="ly" style = 'width:580px; height:210px'></svg>
+  <svg id = "feature-importance" class="fi" style = 'width:450px; height:210px'></svg>
 
   <div id="basic-cal" v-if="mode=='basic'">
     <select class="factor1-select" v-model="factor1">
@@ -27,7 +32,7 @@
         v-if="flag==1"
         :data="asset_show"
         @header-click="Draw"
-        height="480"
+        height="450"
         :header-cell-style="{'text-align':'center'}"
         style="width:50%">
         
@@ -68,7 +73,7 @@
           v-if="gaFactors_show.length==200"
           :data="gaFactors_show"
           @header-click="getLayers,DrawLayers"
-          height="480"
+          height="450"
           :header-cell-style="{'text-align':'center'}"
           style="width:50%">
           
@@ -94,11 +99,11 @@
       <input type="checkbox" id='layer3-select' class="layer3-selector" v-model="manifest[2]" @change="layer_manifest(3)"/>
       <input type="checkbox" id='layer4-select' class="layer4-selector" v-model="manifest[3]" @change="layer_manifest(4)"/>
       <input type="checkbox" id='layer5-select' class="layer5-selector" v-model="manifest[4]" @change="layer_manifest(5)"/>
-      <p v-text="'Layer 1'" style="position:absolute; top:535px; left:820px;font-size:smaller;"></p>
-      <p v-text="'Layer 2'" style="position:absolute; top:535px; left:970px;font-size:smaller;"></p>
-      <p v-text="'Layer 3'" style="position:absolute; top:535px; left:1080px;font-size:smaller;"></p>
-      <p v-text="'Layer 4'" style="position:absolute; top:555px; left:820px;font-size:smaller;"></p>
-      <p v-text="'Layer 5'" style="position:absolute; top:555px; left:970px;font-size:smaller;"></p>
+      <p v-text="'Layer 1'" style="position:absolute; top:625px; left:610px;font-size:smaller;"></p>
+      <p v-text="'Layer 2'" style="position:absolute; top:655px; left:610px;font-size:smaller;"></p>
+      <p v-text="'Layer 3'" style="position:absolute; top:685px; left:610px;font-size:smaller;"></p>
+      <p v-text="'Layer 4'" style="position:absolute; top:715px; left:610px;font-size:smaller;"></p>
+      <p v-text="'Layer 5'" style="position:absolute; top:745px; left:610px;font-size:smaller;"></p>
     </div>
     
 </template>
@@ -163,7 +168,8 @@ export default {
       progress: 0,
       progressMessage: '',
       layer:[],
-      manifest:[true,true,true,true,true]
+      manifest:[true,true,true,true,true],
+      xg_feature_importance:[]
     }
   },
   mounted(){
@@ -219,9 +225,11 @@ export default {
          .then(res => {
            this.gaFactors=eval(res.data)['factors'];
            this.IC = eval(res.data)['IC'];
+           this.xg_feature_importance = eval(res.data)['feature_importance'];
            this.new_gaFactorList = Object.keys(this.IC);
            console.log(this.gaFactors);
            console.log(this.IC);
+           console.log(this.xg_feature_importance);
          })
          .catch(error => {
            console.error(error);
@@ -422,7 +430,7 @@ export default {
         let that = this;
         const xscale = d3.scaleLinear()
                          .domain([1579651200000,1671148800000])
-                         .range([0, this.innerWidth]);
+                         .range([0, this.innerWidth+130]);
         const yscale = d3.scaleLinear()
                          .domain([2.8,0.3])
                          .range([0,this.innerHeight]);
@@ -510,6 +518,72 @@ export default {
           })
   },
 
+  drawFI(){
+      let that = this;
+      const g = d3.select('#feature-importance').append('g').attr('id', 'FIcale')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+
+        const xscale = d3.scaleLinear()
+                         .domain([0,that.xg_feature_importance.length])
+                         .range([0, this.innerWidth]);
+        const yscale = d3.scaleLinear()
+                         .domain([1,-1])
+                         .range([0, this.innerHeight]);
+
+        // console.log([a,b])
+        const yaxis = d3.axisLeft(yscale)
+                        .ticks(10)
+                        .tickSize(5)
+                        .tickPadding(5);
+        const xaxis = d3.axisBottom(xscale)
+                        .ticks(that.xg_feature_importance.length)
+                        .tickSize(-5)
+                        .tickPadding(5)
+                        .tickFormat(function(d,i){
+                          return (i>0)?(that.xg_feature_importance[i-1]['factor']):""
+                        })
+                        //.transform(`translate(${0},${this.innerHeight/2})`);
+
+                       g.append('g').call(yaxis)
+                        .attr('id' ,'yaxis');
+             const x = g.append('g').call(xaxis)
+                        .attr('id', 'xaxis')
+                        .attr('transform',`translate(${0},${this.innerHeight/2})`);
+                       x.selectAll('text') // 选择所有x轴刻度文字
+                        .style('text-anchor', 'end') // 设置文字锚点为末尾
+                        .attr('transform', 'rotate(-30) translate(0, 0)');
+     
+      
+      const g2 = d3.select('#feature-importance').append('g').attr('id', 'FIview')
+                  .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+
+      g2.selectAll('.bar')
+       .data(that.xg_feature_importance).enter()
+       .append("rect")
+       .attr('class', 'bar')
+       .attr("x", function(d,i) {return xscale(i+0.5); })
+       .attr("y", function(d) { return yscale(d['importance']>0?d['importance']:0); })
+       .attr("height", function(d) { return  Math.abs(yscale(0) - yscale(d['importance'])); })
+       .attr("width", that.innerWidth/that.xg_feature_importance.length/2)
+       .attr("fill", "#009966")
+       .attr("stroke", "#000")
+       .on("mouseover",function(){
+        let d =d3.select(this).data();
+        var str = 'IC:' + that.IC[d[0]];
+        var t = 60+ yscale(that.IC[d[0]]);
+        
+        d3.selectAll('.tooltip')
+          .html(str)
+               .style("left", (xscale(d[0]['id'])+595)+"px")
+               .style("top", (t)+"px")
+               .style("opacity",1.0);
+    })
+      .on("mouseleave",function(){
+            d3.select('#Tip')
+              .selectAll('.tooltip')
+              .style("opacity",0.0);
+          }); 
+},
   colorbox(sel, size, colors){
     var [x0,x1] = d3.extent( colors.domain());
     var bars = d3.range( x0, x1, (x1-x0)/size[1]);
@@ -547,6 +621,7 @@ export default {
       this.show_gaFactors();
       this.Scale();
       this.drawIC();
+      this.drawFI();
     },
     layers(){
       console.log('Draw');
@@ -744,6 +819,105 @@ vertical-align: middle;
 white-space: nowrap;
 }
 
+.IC-title{
+display: flex;
+position: absolute;
+top: 150px;
+left:880px;
+width: 80px;
+height: 25px;
+appearance: none;
+background-color: #455a64;
+border: 1px solid rgba(27, 31, 35, .15);
+border-radius: 5px;
+box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+box-sizing: border-box;
+color: #fff;
+cursor: pointer;
+display: inline-block;
+font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+font-size: 14px;
+font-weight: 520;
+line-height: 10px;
+padding: 5px 5px;
+text-align: center;
+text-decoration: none;
+justify-content:space-evenly;
+align-items: center;
+align-content:stretch;
+user-select: none;
+-webkit-user-select: none;
+touch-action: manipulation;
+vertical-align: middle;
+white-space: nowrap;
+}
+
+.FI-title{
+display: flex;
+position: absolute;
+top: 380px;
+left:840px;
+width: 200px;
+height: 25px;
+appearance: none;
+background-color: #455a64;
+border: 1px solid rgba(27, 31, 35, .15);
+border-radius: 5px;
+box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+box-sizing: border-box;
+color: #fff;
+cursor: pointer;
+display: inline-block;
+font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+font-size: 14px;
+font-weight: 520;
+line-height: 10px;
+padding: 5px 5px;
+text-align: center;
+text-decoration: none;
+justify-content:space-evenly;
+align-items: center;
+align-content:stretch;
+user-select: none;
+-webkit-user-select: none;
+touch-action: manipulation;
+vertical-align: middle;
+white-space: nowrap;
+}
+
+.Layer-title{
+display: flex;
+position: absolute;
+top: 600px;
+left:280px;
+width: 110px;
+height: 25px;
+appearance: none;
+background-color: #455a64;
+border: 1px solid rgba(27, 31, 35, .15);
+border-radius: 5px;
+box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+box-sizing: border-box;
+color: #fff;
+cursor: pointer;
+display: inline-block;
+font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+font-size: 14px;
+font-weight: 520;
+line-height: 10px;
+padding: 5px 5px;
+text-align: center;
+text-decoration: none;
+justify-content:space-evenly;
+align-items: center;
+align-content:stretch;
+user-select: none;
+-webkit-user-select: none;
+touch-action: manipulation;
+vertical-align: middle;
+white-space: nowrap;
+}
+
 .ga-button{
 display: flex;
 position: absolute;
@@ -795,23 +969,31 @@ white-space: nowrap;
 
 .ic{
   position:absolute;
-  top:100px;
+  top:150px;
   left:700px;
 }
 
-.ly{
+.fi{
   position:absolute;
-  top:350px;
+  top:380px;
   left:700px;
 }
+
+
+.ly{
+  position:absolute;
+  top:600px;
+  left:0px;
+}
+
 
 .layer1-selector {
   position: absolute;
   outline: none;
   width: 13px;
   height: 13px;
-  left:800px;
-  top:550px;
+  left:590px;
+  top:640px;
 
   background-color: #ffffff;
   border: solid 2px red;
@@ -832,8 +1014,8 @@ white-space: nowrap;
   outline: none;
   width: 13px;
   height: 13px;
-  left:930px;
-  top:550px;
+  left:590px;
+  top:670px;
  
   background-color: #ffffff;
   border: solid 2px orange;
@@ -854,8 +1036,8 @@ white-space: nowrap;
   outline: none;
   width: 13px;
   height: 13px;
-  left:1060px;
-  top:550px;
+  left:590px;
+  top:700px;
 
   background-color: #ffffff;
   border: solid 2px blue;
@@ -876,8 +1058,8 @@ white-space: nowrap;
   outline: none;
   width: 13px;
   height: 13px;
-  left:800px;
-  top:570px;
+  left:590px;
+  top:730px;
 
   background-color: #ffffff;
   border: solid 2px green;
@@ -898,8 +1080,8 @@ white-space: nowrap;
   outline: none;
   width: 13px;
   height: 13px;
-  left:930px;
-  top:570px;
+  left:590px;
+  top:760px;
 
   background-color: #ffffff;
   border: solid 2px yellow;

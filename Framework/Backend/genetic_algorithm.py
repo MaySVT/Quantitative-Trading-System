@@ -8,6 +8,7 @@ from gplearn import genetic
 import gplearn
 from factor import factor
 from flask_socketio import SocketIO, emit
+from Evaluate import Evaluation
 
 class ga:
     def __init__(self, df,factor_list):
@@ -22,7 +23,7 @@ class ga:
             eval("self.factors.get_"+f+"()")
         tmp = self.factors.get_df()
         tmp = tmp.fillna(method = 'bfill').fillna(method = 'ffill')
-        tmp['pnl'] = tmp.close - tmp.open
+        tmp['pnl'] = tmp.close/tmp.open-1
         return tmp
 
     def function_set(self):
@@ -112,6 +113,10 @@ class ga:
         for c in self.factor_list+self.new_factor_list:
             tmp[c] = self.data[c][:-1].corr(self.data['pnl'][1:])
         return tmp
+    
+    def feature_imp(self):
+        eva = Evaluation(self.data,self.factor_list+self.new_factor_list)
+        return eva.get_featureimportance()
     
 
 from gplearn.genetic import SymbolicRegressor

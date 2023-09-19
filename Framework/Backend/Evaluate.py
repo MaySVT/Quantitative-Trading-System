@@ -16,14 +16,14 @@ def drop_extreme_value(df,factor,k):
     return tmp.clip(lower =mean-k*std,upper = mean+k*std)
 
 class Evaluation():
-    def __init__(self,df):
+    def __init__(self,df,factor_lst):
         '''
         input:含有open_time high low close volume pct 和 Factor,index 为 时间的DataFrame,
         '''
         self.df = df
         #所有因子名称构成的列表
-        self.factor_lst = list(df.drop(columns = ['open_time','open','high','low','close','volume','pct']).columns)
-        self.pct = df['pct']
+        self.factor_lst = factor_lst # list(df.drop(columns = ['open_time','open','high','low','close','volume','pnl']).columns)
+        self.pct = df['pnl']
         #list:按IC IR feature_importance 的因子排序（由高到低）
         self.ic_rank = None
         self.ir_rank = None
@@ -66,7 +66,7 @@ class Evaluation():
         ic_lst = []
         for i in range(k - 1, len(self.df)):
             tmp1 = self.df.iloc[i - k + 1:i + 1, :][factor]
-            tmp2 = self.df.iloc[i - k + 1:i + 1, :]['return']
+            tmp2 = self.df.iloc[i - k + 1:i + 1, :]['pnl']
             time_lst.append(self.df.index[i])
             ic_lst.append(tmp1.corr(tmp2))
         return time_lst, ic_lst
@@ -109,7 +109,7 @@ class Evaluation():
         tmp['importance'] = importance
         tmp = tmp.sort_values('importance', ascending=False)
         self.feature_importance_rank = list(tmp.factor)
-        return list(tmp.factor), list(tmp.importance)
+        return tmp # list(tmp.factor), list(tmp.importance)
 
     def get_new_factor_lst(self,r1,r2,r3):
         '''

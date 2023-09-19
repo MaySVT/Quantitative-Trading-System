@@ -386,7 +386,8 @@ def gene(ts_code,start_time,end_time,frequency,factor_list,generations,populatio
     result.generate_new_factor()
     data = result.data
     IC = result.IC()
-    return "{\"factors\":"+data.to_json(orient="records", force_ascii=False)+",\"IC\":"+json.dumps(IC)+'}'
+    fi = result.feature_imp()
+    return "{\"factors\":"+data.to_json(orient="records", force_ascii=False)+",\"IC\":"+json.dumps(IC)+",\"feature_importance\":" + fi.to_json(orient="records", force_ascii=False) +'}'
 
 # @socketio.on('genetic_algorithm_progress')
 # def handle_genetic_algorithm_progress(data):
