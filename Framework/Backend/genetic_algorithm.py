@@ -11,12 +11,13 @@ from flask_socketio import SocketIO, emit
 from Evaluate import Evaluation
 
 class ga:
-    def __init__(self, df,factor_list):
+    def __init__(self, df,factor_list,new_factor_list = []):
         self.factor_list = factor_list
         self.factors = factor(df)
         self.data = self.get_data()
-        self.new_factor_list = []
+        self.new_factor_list = new_factor_list
         self.functions = self.function_set()
+        self.eva = None
 
     def get_data(self):
         for f in self.factor_list:
@@ -107,6 +108,7 @@ class ga:
             locals()[factor] = self.data[factor].to_numpy()
         for g in self.new_factor_list:
             self.data[str(g)]=eval(str(g))
+        self.eva = Evaluation(self.data,self.factor_list+self.new_factor_list)
     
     def IC(self):
         tmp = {}
@@ -115,9 +117,9 @@ class ga:
         return tmp
     
     def feature_imp(self):
-        eva = Evaluation(self.data,self.factor_list+self.new_factor_list)
-        return eva.get_featureimportance()
-    
+        
+        return self.eva.get_featureimportance()
+
 
 from gplearn.genetic import SymbolicRegressor
 

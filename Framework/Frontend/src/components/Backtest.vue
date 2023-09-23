@@ -93,7 +93,8 @@
         this.strategy=s;
        },
        backtest(){
-        const path = "http://127.0.0.1:5000/"+this.asset_code+"/st="+this.start_time+"ed="+this.end_time+"freq="+this.frequency+"/strategy="+this.strategy;
+        const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D"+"/strategy="+this.strategy;
+        // const path = "http://127.0.0.1:5000/"+this.asset_code+"/st="+this.start_time+"ed="+this.end_time+"freq="+this.frequency+"/strategy="+this.strategy;
         axios
            .get(path)
            .then(res => {

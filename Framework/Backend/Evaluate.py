@@ -60,16 +60,20 @@ class Evaluation():
         输入：t为rolling的时间(单位：天）,因子名称
         输出：rolling段的截至时间(是时间戳）和rolling段的IC值(都是list)
         '''
-        delta = self.df.index[1] - self.df.index[0]
+        # delta = self.df.index[1] - self.df.index[0]
+        # self.df.resample(on='open_time')
+        delta = self.df['open_time'][1]-self.df['open_time'][0]
         k = int(np.timedelta64(t, 'D') / delta)
-        time_lst = []
         ic_lst = []
         for i in range(k - 1, len(self.df)):
+            tmp = {}
             tmp1 = self.df.iloc[i - k + 1:i + 1, :][factor]
             tmp2 = self.df.iloc[i - k + 1:i + 1, :]['pnl']
-            time_lst.append(self.df.index[i])
-            ic_lst.append(tmp1.corr(tmp2))
-        return time_lst, ic_lst
+            tmp['time'] = self.df['open_time'][i]
+            tmp['rolling_IC'] = tmp1.corr(tmp2)
+            ic_lst.append(tmp)
+            # resample成天，close.last/open.first
+        return ic_lst
 
     def get_IR(self,t):
         '''

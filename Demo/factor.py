@@ -1,5 +1,6 @@
 import talib
 
+
 class factor:
     def __init__(self, df):
         self.open = df.open
@@ -7,7 +8,19 @@ class factor:
         self.low = df.low
         self.close = df.close
         self.volume = df.volume
+        # self.type = df.type
         self.df = df
+
+    # def multi_type(self,factor_name):
+    #     groups = self.df.groupby('type')
+    #     for type, group in groups:
+    #         self.get_ATR()
+    #         self.
+        
+    #     for type, group in groups:
+    #         ft = factor(group)
+    #         ft.get_ATR()
+    #         continuous_df.loc[continuous_df['Type']==type,'ATR']=ft.get_df()['ATR']
 
     def get_SMA(self):
         self.df['SMA'] = talib.SMA(self.close, 5)

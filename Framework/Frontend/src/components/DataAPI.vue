@@ -104,8 +104,8 @@ export default {
   },
   methods:{
      getAsset(){
-      //const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D";
-      const path = "http://127.0.0.1:5000/"+this.asset_code+"/st="+this.start_time+"ed="+this.end_time+"freq="+this.frequency;
+      const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D";
+      // const path = "http://127.0.0.1:5000/"+this.asset_code+"/st="+this.start_time+"ed="+this.end_time+"freq="+this.frequency;
       axios
          .get(path)
          .then(res => {

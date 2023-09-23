@@ -32,7 +32,7 @@ from gplearn import genetic
 import gplearn
 from factor import factor
 from flask_socketio import emit, SocketIO
-
+from Evaluate import Evaluation
 
 sys.path.append(r'.\system strategy')
 from R_breaker import R_breaker
@@ -460,7 +460,109 @@ def layer(kind,factor_name):
     layers = []
     for quantile, group in groups:
         layers.append(eval(group.to_json(orient="records",force_ascii=False)))
-    return layers
+
+    result = pd.read_csv(r'Framework\genetic algorithm\data\example.csv')
+    result['open_time'] = pd.to_datetime(result.open_time)
+    
+    # result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+    #升序排列
+    result.sort_values(by = 'open_time',ascending = True,inplace = True,ignore_index = True)
+    result['pnl'] = result.close/result.open-1
+    fac = factor(result)
+    getattr(fac, f'get_{factor_name}')()
+    result = fac.get_df()
+    
+    eva = Evaluation(result,factor_name)
+    rolling_IC = eva.get_rolling_IC(factor_name,3)
+
+    return [layers] + [rolling_IC]
+
+
+@app.route('/layers/<kind>/ga/<factor_list>/<factor_name>')
+def layer_ga(kind,factor_list,factor_name):
+    df = pd.read_csv(r"D:\upenn大三下\denghui project\Quantitative-Trading-System\国内期货日交易数据163250758(仅供复旦大学使用)\FUT_Fdt.csv",usecols=[0,1,3,4,5,6,7,9,10],header=0,names=['Date','Code','Exchange','Open','High','Low','Close','Volume','Position'])
+    df['Type'] = df['Code'].apply(lambda x: re.search('[A-Za-z]+', x).group())
+    SH = df[df['Exchange']=='SHFE']
+    Metal = futures[kind]
+    F_metal = SH[SH['Type'].isin(Metal)]
+    grouped = F_metal.groupby('Type')
+
+    continuous_data = pd.DataFrame()
+
+    # 定义加权平均函数
+    def weighted_average(group):
+        weighted_sum = pd.DataFrame()
+        weighted_sum['open'] = pd.Series((group['Open'] * group['Position']).sum())
+        weighted_sum['high'] = (group['High'] * group['Position']).sum()
+        weighted_sum['low'] = (group['Low'] * group['Position']).sum()
+        weighted_sum['close'] = (group['Close'] * group['Position']).sum()
+        weighted_sum['volume'] = (group['Volume'] * group['Position']).sum()
+        total_position = group['Position'].sum()
+        # print(weighted_sum/total_position)
+        return weighted_sum / total_position
+
+    for type, group in grouped:
+        # 按照交易日期排序
+        group = group.sort_values(by='Date')
+        continuous_price = group.groupby('Date').apply(weighted_average).reset_index()
+        
+        # 创建连续合约数据
+        continuous_price['type'] = type
+        continuous_data = pd.concat([continuous_data, continuous_price])
+        # continuous_data.append(continuous_price)
+
+    continuous_df = pd.DataFrame(continuous_data)
+    
+    groups = continuous_df.groupby('type')
+    for type, group in groups:
+        ft = ga(df=group,factor_list = eval(factor_list),new_factor_list=[factor_name])
+        ft.generate_new_factor()
+        # getattr(ft, f'get_{factor_name}')()
+        continuous_df.loc[continuous_df['type']==type,factor_name]=ft.data[factor_name]
+    
+    continuous_df['Date'] = pd.to_datetime(continuous_df['Date'])
+    continuous_df['Date'] = continuous_df['Date'].dt.tz_localize('UTC')
+    factors = continuous_df[['Date','type',factor_name]].sort_values(by=['Date'],ascending=True)
+    factors.dropna(inplace=True)
+    factors.set_index(['Date','type'],inplace=True)
+    price = continuous_df[['Date','type','close']].sort_values(by=['Date'],ascending=True)
+    price = price.pivot(index='Date', columns='type', values='close')
+
+    analysis = al.utils.get_clean_factor_and_forward_returns(
+        factors,
+        price,
+        quantiles=5,  # Number of quantiles to divide the factor into
+        periods=(1, 5, 10),  # Lookahead periods for forward returns
+    )
+    df = pd.DataFrame()
+    for i in range(1,6):
+        group = analysis[analysis['factor_quantile']==i].groupby('date').mean()[['1D','factor_quantile']]
+        df = pd.concat([df,group])
+    df = df.reset_index().sort_values(by=['factor_quantile','date'],ascending=True)
+    df['1D'] = 1+df['1D']
+    df['1D']=df[['1D','factor_quantile']].groupby('factor_quantile').cumprod()
+    # df.set_index(['date','factor_quantile'],inplace=True)
+    groups = df.groupby('factor_quantile')
+    layers = []
+    for quantile, group in groups:
+        layers.append(eval(group.to_json(orient="records",force_ascii=False)))
+
+    result = pd.read_csv(r'Framework\genetic algorithm\data\example.csv')
+    result['open_time'] = pd.to_datetime(result.open_time)
+    
+    # result['trade_time'] = result['trade_time'].apply(lambda x:datetime.strptime(x,"%Y-%m-%d %H:%M:%S"))
+    #升序排列
+    result.sort_values(by = 'open_time',ascending = True,inplace = True,ignore_index = True)
+    result['pnl'] = result.close/result.open-1
+
+    fac = ga(df=result,factor_list = eval(factor_list),new_factor_list=[factor_name])
+    fac.generate_new_factor()
+    result = fac.data
+    
+    eva = Evaluation(result,factor_name)
+    rolling_IC = eva.get_rolling_IC(factor_name,3)
+
+    return [layers] + [rolling_IC]
 
 
 if __name__ == '__main__':

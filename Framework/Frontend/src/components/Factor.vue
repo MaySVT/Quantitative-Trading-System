@@ -3,16 +3,19 @@
   <input class="time-start" type="text" v-model.lazy = "start_time" placeholder="Input Start Time">
   <input class="time-end" type="text" v-model.lazy = "end_time" placeholder="Input End Time">
   <input class="time-frequency" type="text" v-model.lazy = "frequency" placeholder="Input Frequency">
-  <div class = "basic-button" @click="getLayers()" type="submit">Basic</div>
-  <!--div class = "basic-button" @click="mode='basic'" type="submit">Basic</div-->
+  <!--div class = "basic-button" @click="getLayers()" type="submit">Basic</div-->
+  <div class = "basic-button" @click="mode='basic'" type="submit">Basic</div>
   <div class = "ga-button" @click="mode='ga'" type="submit">Genetic Algorithm</div>
   <div class = "IC-title" type="submit">Factor IC</div>
   <div class = "FI-title" type="submit">Xgboost Factor Importance</div>
   <div class = "Layer-title" type="submit">Layer Backtest</div>
+  <div class = "Rolling-title" type="submit">Rolling IC</div>
 
   <svg id = "IC" class="ic" style = 'width:450px; height:210px'></svg>
   <svg id = "Layer" class="ly" style = 'width:580px; height:210px'></svg>
   <svg id = "feature-importance" class="fi" style = 'width:450px; height:210px'></svg>
+  <svg id = "RollingIC" class="ri" style = 'width:520px; height:210px'></svg>
+
 
   <div id="basic-cal" v-if="mode=='basic'">
     <select class="factor1-select" v-model="factor1">
@@ -72,7 +75,7 @@
       <el-table id="DataTable"
           v-if="gaFactors_show.length==200"
           :data="gaFactors_show"
-          @header-click="getLayers,DrawLayers"
+          @header-click="getLayers"
           height="450"
           :header-cell-style="{'text-align':'center'}"
           style="width:50%">
@@ -169,7 +172,8 @@ export default {
       progressMessage: '',
       layer:[],
       manifest:[true,true,true,true,true],
-      xg_feature_importance:[]
+      xg_feature_importance:[],
+      rolling_IC:[],
     }
   },
   mounted(){
@@ -254,13 +258,21 @@ export default {
 
     },
 
-    getLayers(){
-      const path = "http://127.0.0.1:5000/layers/metal/ATR"; 
+    getLayers(column){
+      var path = ""
+      if(this.gaFactorList.includes(column.label)){
+      path = "http://127.0.0.1:5000/layers/metal/"+column.label; 
+      }else{
+      path = "http://127.0.0.1:5000/layers/metal/ga/[\""+this.gaFactorList.join("\",\"")+"\"]/"+column.label;
+      }
+      console.log(path);
       axios
          .get(path)
          .then(res => {
-           this.layer=res.data;
+           this.layer=eval(res.data)[0];
+           this.rolling_IC = eval(res.data)[1];
            console.log(this.layer);
+           console.log(this.rolling_IC);
          })
          .catch(error => {
            console.error(error);
@@ -421,6 +433,7 @@ export default {
     },
 
     DrawLayers(){
+      d3.select('#Layer').selectAll('g').remove()
       const g = d3.select('#Layer').append('g').attr('id', 'Layerscale')
                     .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
         // const b = 30000;
@@ -491,6 +504,78 @@ export default {
                 .attr('stroke',function(){return colors[k-1];})
                 // .attr('visibility',function(){return })
             }
+
+    },
+
+    DrawRollingIC(){
+      d3.select('#RollingIC').selectAll('g').remove()
+      const g = d3.select('#RollingIC').append('g').attr('id', 'RIscale')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+        // const b = 30000;
+        // const a = -30000;
+        // var [a,b] = d3.extent(this.IC)
+        
+        let that = this;
+        const xscale = d3.scaleLinear()
+                         .domain([new Date(that.rolling_IC[0]['time']).getTime(),new Date(that.rolling_IC[that.rolling_IC.length-1]['time']).getTime()])
+                         .range([0, this.innerWidth+70]);
+        const yscale = d3.scaleLinear()
+                         .domain([1,-1])
+                         .range([0,this.innerHeight]);
+        // console.log([a,b])
+        const yaxis = d3.axisLeft(yscale)
+                        .ticks(10)
+                        .tickSize(5)
+                        .tickPadding(5);
+        const xaxis = d3.axisBottom(xscale)
+                        .ticks(10)
+                        .tickSize(-5)
+                        .tickPadding(5)
+                        .tickFormat(function(d,i){
+                          let t = new Date(d);
+                          let y = t.getFullYear();
+                          let m = t.getMonth()+1;
+                          m = m<10?'0'+m:m;
+                          let date = t.getDate();
+                          date = date<10?'0'+date:date;                  
+                          return (i>0)?(y+'-'+m+'-'+date):""
+                        })
+                        
+
+                       g.append('g').call(yaxis)
+                        .attr('id' ,'yaxis');
+             const x = g.append('g').call(xaxis)
+                        .attr('id', 'xaxis')
+                        .attr('transform',`translate(${0},${yscale(0)})`);
+                       x.selectAll('text') // 选择所有x轴刻度文字
+                        .style('text-anchor', 'end') // 设置文字锚点为末尾
+                        .attr('transform', 'rotate(-30) translate(0, 5)');
+
+            const line = d3.line()
+                         .x(function(d){return xscale(new Date(d['time']).getTime())}) // x轴坐标
+                         .y(function(d){return yscale(d['rolling_IC'])}) // y
+                         .curve(d3.curveLinear);
+
+  
+            const g2 = d3.select('#RollingIC').append('g').attr('id', 'RICurve')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+            
+            // const colors = ['red','orange','blue','green','yellow']
+
+                      // // 绑定数据并绘制折线
+                      // svg.selectAll(".line")
+                      //   .data(that.layer)
+                      //   .enter()
+                      //   .append("path")
+                      //   .attr("class", "line")
+                      //   .attr("d", d => line(d))
+                      //   .attr("stroke", (d, i) => colors[i]); // 可以设置不同折线的颜色
+            
+              g2.append('path').attr('id','rolling_curve')
+                .attr('d',function(){return line(that.rolling_IC)})
+                .attr('fill','none')
+                .attr('stroke','blue')
+                // .attr('visibility',function(){return })
 
     },
 
@@ -626,6 +711,7 @@ export default {
     layers(){
       console.log('Draw');
       this.DrawLayers();
+      this.DrawRollingIC();
     },
     manifest(){
       console.log(this.manifest);
@@ -918,6 +1004,39 @@ vertical-align: middle;
 white-space: nowrap;
 }
 
+.Rolling-title{
+display: flex;
+position: absolute;
+top: 600px;
+left:880px;
+width: 80px;
+height: 25px;
+appearance: none;
+background-color: #455a64;
+border: 1px solid rgba(27, 31, 35, .15);
+border-radius: 5px;
+box-shadow: rgba(27, 31, 35, .1) 0 1px 0;
+box-sizing: border-box;
+color: #fff;
+cursor: pointer;
+display: inline-block;
+font-family: -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+font-size: 14px;
+font-weight: 520;
+line-height: 10px;
+padding: 5px 5px;
+text-align: center;
+text-decoration: none;
+justify-content:space-evenly;
+align-items: center;
+align-content:stretch;
+user-select: none;
+-webkit-user-select: none;
+touch-action: manipulation;
+vertical-align: middle;
+white-space: nowrap;
+}
+
 .ga-button{
 display: flex;
 position: absolute;
@@ -984,6 +1103,12 @@ white-space: nowrap;
   position:absolute;
   top:600px;
   left:0px;
+}
+
+.ri{
+  position:absolute;
+  top:600px;
+  left:650px;
 }
 
 
