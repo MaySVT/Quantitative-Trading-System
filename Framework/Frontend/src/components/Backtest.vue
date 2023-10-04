@@ -13,7 +13,10 @@
       <input class="time-end" type="text" v-model.lazy = "end_time" placeholder="Input End Time">
       <input class="time-frequency" type="text" v-model.lazy = "frequency" placeholder="Input Frequency">
       <div class = "time-button" @click="backtest()" type="submit">Backtest</div>
-      <div class = "indexes">最大回撤：{{retreat }}</div>
+      <div class = "indexes retreat">最大回撤：{{retreat }}</div>
+      <div class = "indexes sharpe">夏普比率：{{ sharpe }}</div>
+      <div class = "indexes return">年化收益：{{ annual_return }}</div>
+      <button class = 'download-button' @click="downloadPdf">下载回测报告</button>
       <form action="strategy=custom" method=post enctype=multipart/form-data>
          <input class="custom-strategy file" type=file name=file>
          <input  class="custom-strategy upload" type=submit value=Upload>
@@ -70,7 +73,9 @@
         end_time:"",
         frequency:"",
         strategy:"",
-        flag:0
+        flag:0,
+        sharpe:0,
+        annual_return:{}
       }
     },
     mounted(){
@@ -93,12 +98,16 @@
         this.strategy=s;
        },
        backtest(){
-        const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D"+"/strategy="+this.strategy;
+        const path = "http://127.0.0.1:5000/backtrader";
+        // const path = "http://127.0.0.1:5000/CU1811.SHF/st=20180101ed=20180301freq=D"+"/strategy="+this.strategy;
         // const path = "http://127.0.0.1:5000/"+this.asset_code+"/st="+this.start_time+"ed="+this.end_time+"freq="+this.frequency+"/strategy="+this.strategy;
         axios
            .get(path)
            .then(res => {
-             this.asset=res.data;
+             this.asset=eval(eval(res.data)['log']);
+             this.sharpe = eval(res.data)['sharpe'];
+             this.annual_return = eval(res.data)['annualreturn'];
+             this.retreat = eval(res.data)['drawdown'];
              console.log(this.asset);
            })
            .catch(error => {
@@ -248,15 +257,28 @@
         console.log(this.investvalue);
       },
 
+      downloadPdf() {
+      // 发起后端请求以下载PDF文件
+      // window.location.href = 'http://127.0.0.1:5000/generate_pdf';
+      const link = document.createElement("a");
+      link.href = "http://127.0.0.1:5000/generate_pdf"; // 文件的URL或相对路径
+
+      // 设置下载属性并指定文件名
+      link.setAttribute("download", "report.pdf");
+
+      // 触发点击事件以开始下载
+      link.click();
+      },
+
       //Scale函数用来画出坐标轴
-       Scale(){
+      Scale(){
         d3.select('#classicscale').remove()
         const g = d3.select('#Classics').append('g').attr('id', 'classicscale')
                     .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-        var [a,b] = d3.extent(this.investvalue);
+        var [a,b] = d3.extent(this.asset,function(d){return d['price'];});
         let that = this;
         const xscale = d3.scaleLinear()
-                         .domain([0,that.investvalue.length])
+                         .domain([that.asset[0]['starttime'],that.asset[that.asset.length-1]['closetime']])
                          .range([0, this.innerWidth]);
         const yscale = d3.scaleLinear()
                          .domain([b,a])
@@ -268,13 +290,19 @@
                         .tickPadding(5);
 
         const xaxis = d3.axisBottom(xscale)
-                      .ticks(20)
+                      .ticks(15)
                       .tickSize(-5)
                       .tickPadding(-15)
                       .tickFormat(function(d){
                         //return i;
                         //console.log(that.asset[d]['trade_time'])
-                        return d<that.asset.length?that.asset[d]['date'].slice(5,10):that.asset[d-1]['date'].slice(5,10);
+                        let t = new Date(d);
+                        let y = t.getFullYear();
+                        let m = t.getMonth();
+                        m = m<10?'0'+m:m;
+                        let day = t.getDate();
+                        day = day<10?'0'+day:day;
+                        return y+'-'+m+'-'+day;
                       })
 
                      g.append('g').call(yaxis)
@@ -288,6 +316,45 @@
                        .attr("font-size","9px");
   
     },
+    //    Scale(){
+    //     d3.select('#classicscale').remove()
+    //     const g = d3.select('#Classics').append('g').attr('id', 'classicscale')
+    //                 .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+    //     var [a,b] = d3.extent(this.investvalue);
+    //     let that = this;
+    //     const xscale = d3.scaleLinear()
+    //                      .domain([0,that.investvalue.length])
+    //                      .range([0, this.innerWidth]);
+    //     const yscale = d3.scaleLinear()
+    //                      .domain([b,a])
+    //                      .range([0, this.innerHeight]);
+    //     console.log([a,b])
+    //     const yaxis = d3.axisLeft(yscale)
+    //                     .ticks(10)
+    //                     .tickSize(5)
+    //                     .tickPadding(5);
+
+    //     const xaxis = d3.axisBottom(xscale)
+    //                   .ticks(20)
+    //                   .tickSize(-5)
+    //                   .tickPadding(-15)
+    //                   .tickFormat(function(d){
+    //                     //return i;
+    //                     //console.log(that.asset[d]['trade_time'])
+    //                     return d<that.asset.length?that.asset[d]['date'].slice(5,10):that.asset[d-1]['date'].slice(5,10);
+    //                   })
+
+    //                  g.append('g').call(yaxis)
+    //                   .attr('id' ,'yaxis');
+    //                  g.append('g').call(xaxis)
+    //                   .attr('id', 'xaxis')
+                      
+    //                  d3.select('#xaxis')
+    //                    .selectAll('.tick')
+    //                    .selectAll('text')
+    //                    .attr("font-size","9px");
+  
+    // },
        //ATR strategy的函数实现
        Draw(){        
         d3.select('#classicCurve').remove()
@@ -303,9 +370,9 @@
         that.flag="ATR";
         
         //设置x轴、y轴的映射函数，将数据映射到x、y轴坐标上
-        var [a,b] = d3.extent(this.investvalue);
+        var [a,b] = d3.extent(this.asset,function(d){return d['price'];});
         const xscale = d3.scaleLinear()
-                         .domain([0,that.investvalue.length])
+                         .domain([that.asset[0]['starttime'],that.asset[that.asset.length-1]['closetime']])
                          .range([0, this.innerWidth]);
         const yscale = d3.scaleLinear()
                          .domain([b,a])
@@ -313,15 +380,56 @@
 
         //设置折线图的映射函数，会将数据映射为每个点的坐标/每条线段的路径值
         const line = d3.line()
-                       .x(function(d,i){return xscale(i)})
-                       .y(function(d){return yscale(d)})
+                       .x(function(d){return xscale(d['starttime'])})
+                       .y(function(d){return yscale(d['price'])})
                        .curve(d3.curveLinear)
       
         //在g上增添路径path，并将目标画线的数据传入line映射函数中
         g2.append('path')
-          .attr('d',line(that.investvalue))
+          .attr('d',line(that.asset))
           .attr('fill','none')
-          .attr('stroke',"#3366ff")
+          .attr('stroke','orange')//"#3366ff")
+
+        const g3 = d3.select('#Classics').append('g').attr('id', 'classicMarker')
+                    .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+        
+        var triangleSymbol = d3.symbol()
+                               .type(d3.symbolTriangle) // 指定符号类型
+
+        // 添加三角形元素
+        g3.selectAll('path')
+          .data(that.asset) // 使用单一的数据点来绑定一个元素
+          .enter()
+          .append('path')
+          .attr('d', triangleSymbol) // 使用符号生成器创建路径
+          .attr('transform', function(d) {
+              // 根据数据来设置位置，例如根据数据的x和y属性
+              var x = xscale(d['starttime']); // 假设数据中有x属性
+              var y = yscale(d['price']); // 假设数据中有y属性
+              if(d['side']==1){
+                return 'translate(' + x + ',' + y + ')' + 'rotate(180)'
+              }
+              return 'translate(' + x + ',' + y + ')';
+            })
+          .attr('fill',function(d){
+            if(d['side']==0){
+              return 'red';
+            }
+            return 'green';
+          });
+
+        // g3.selectAll("marker")
+        //   .data(that.asset)
+        //   .enter()
+        //   .append("marker")
+        //   .attr("id","arrow")
+        //   .attr("markerUnits","strokeWidth")
+        //   .attr("markerWidth","8")
+        //   .attr("markerHeight","8")
+        //   .attr("viewBox","0 0 12 12")
+        //   .attr("refX",function(d){return xscale(d['starttime'])})
+        //   .attr("refY",function(d){return yscale(d['price'])})
+        //   .attr("orient",0);
           //.attr("transform", function(d) {
           //  return `translate(${xscale(d['id'])+1.5},${yscale(d['price'])-5})`;
           //})
@@ -342,6 +450,59 @@
           //     .style("opacity",0.0);
           //})
        },
+      //  Draw(){        
+      //   d3.select('#classicCurve').remove()
+
+      //   //选择id为'Classics'的svg，增添g并取id为classicCurve，移动画布使其与设置的margin对其
+      //   const g2 = d3.select('#Classics').append('g').attr('id', 'classicCurve')
+      //               .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+        
+      //   //防止代码中将this错认为当前数据，用that代替全局的this
+      //   let that = this;
+
+      //   //设置旗帜为ATR，表示按下了ATR按钮
+      //   that.flag="ATR";
+        
+      //   //设置x轴、y轴的映射函数，将数据映射到x、y轴坐标上
+      //   var [a,b] = d3.extent(this.investvalue);
+      //   const xscale = d3.scaleLinear()
+      //                    .domain([0,that.investvalue.length])
+      //                    .range([0, this.innerWidth]);
+      //   const yscale = d3.scaleLinear()
+      //                    .domain([b,a])
+      //                    .range([0, this.innerHeight]);
+
+      //   //设置折线图的映射函数，会将数据映射为每个点的坐标/每条线段的路径值
+      //   const line = d3.line()
+      //                  .x(function(d,i){return xscale(i)})
+      //                  .y(function(d){return yscale(d)})
+      //                  .curve(d3.curveLinear)
+      
+      //   //在g上增添路径path，并将目标画线的数据传入line映射函数中
+      //   g2.append('path')
+      //     .attr('d',line(that.investvalue))
+      //     .attr('fill','none')
+      //     .attr('stroke',"#3366ff")
+      //     //.attr("transform", function(d) {
+      //     //  return `translate(${xscale(d['id'])+1.5},${yscale(d['price'])-5})`;
+      //     //})
+      //     //.on("mouseover",function(){
+      //     //   let d =d3.select(this).data();
+      //     //   console.log(d);
+      //     //   var str = 'value:' + d[0];
+      //     //   var t = 60 + yscale(d[0])
+            
+      //     //   d3.selectAll('.tooltip')
+      //     //     .html(str)
+      //     //     .style("left", (xscale(d[0]['id'])+35)+"px")
+      //     //     .style("top", (t+270)+"px")
+      //     //     .style("opacity",1.0);
+      //     //})
+      //     //.on("mouseleave",function(){
+      //     //   d3.selectAll('.tooltip')
+      //     //     .style("opacity",0.0);
+      //     //})
+      //  },
 
        //Dual Thrust strategy的函数实现
        DT(){
@@ -373,7 +534,7 @@
       asset(){
         // console.log("getasset");
         this.getInvestvalue();
-        this.retreat = d3.max(this.asset,function(d){return d['retreat']}).toFixed(2);
+        // this.retreat = d3.max(this.asset,function(d){return d['retreat']}).toFixed(2);
         this.Scale();
         this.Draw();
     }
@@ -487,6 +648,12 @@
   border-bottom: 2px solid #455a64;
   z-index:98;
   }
+
+  .download-button{
+    position:absolute;
+    left: 500px;
+    top:520px;
+  }
   .time-button{
   display: flex;
   position: absolute;
@@ -591,7 +758,15 @@
   .indexes{
     position: absolute;
     left: 1000px;
+  }
+  .return{
     top:200px;
+  }
+  .sharpe{
+    top:300px;
+  }
+  .retreat{
+    top:350px;
   }
   </style>
   

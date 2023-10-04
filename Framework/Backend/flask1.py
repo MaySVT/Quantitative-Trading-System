@@ -1,4 +1,4 @@
-from flask import Flask, render_template,request
+from flask import Flask, render_template,request,Response,jsonify
 # from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import string
@@ -33,6 +33,9 @@ import gplearn
 from factor import factor
 from flask_socketio import emit, SocketIO
 from Evaluate import Evaluation
+import backtrader as bt
+from backtrader.feeds import PandasData
+import io
 
 sys.path.append(r'.\system strategy')
 from R_breaker import R_breaker
@@ -40,6 +43,8 @@ from ATR import ATR
 from Fairy import Fairy
 from factor import factor
 from genetic_algorithm import ga
+import sysstrategy as stg
+import Report
 
 app = Flask(__name__)
 CORS(app)
@@ -170,6 +175,13 @@ def sample1(asset):
             r = next(row)
             data[i]['current'] = eval(r[id])
     return data
+
+class PandasData1(PandasData):
+    lines = ('pivot','price_range')
+    params = (
+        ('pivot', 7),
+        ('price_range',6)
+    )
 
 # flask创建页面链接
 # 例子中若输入网页http://127.0.0.1:5000/Trade/?beg=1645315199996&end=1645315200005
@@ -563,6 +575,129 @@ def layer_ga(kind,factor_list,factor_name):
     rolling_IC = eva.get_rolling_IC(factor_name,3)
 
     return [layers] + [rolling_IC]
+
+@app.route('/generate_pdf')
+def generate_pdf():
+    df = pd.read_csv(r'Framework\genetic algorithm\data\example.csv')
+    df['open_time'] = pd.to_datetime(df.open_time)
+    df = df.set_index('open_time')
+
+    #日内指标
+    high = df.resample('1D')['high'].max()
+    low = df.resample('1D')['low'].min()
+    close = df.resample('1D')['close'].last()
+    pivot = (high+low+close)/3
+    price_range = high - low
+    p = pivot
+    r= price_range
+
+    #获取price_range pivot
+    bins = list(r.index[1:])
+    bins.append(r.index[-1]+np.timedelta64(1,'D'))
+    labels = r.values[1:]
+    df['price_range'] = pd.cut(df.index,bins = bins,labels = labels,ordered = False,right = True).astype('float')
+
+    bins = list(p.index[1:])
+    bins.append(p.index[-1]+np.timedelta64(1,'D'))
+    labels = p.values[1:]
+    df['pivot'] = pd.cut(df.index,bins = bins,labels = labels,ordered = False,right = True).astype('float')   
+    df['open_time'] = df.index
+
+    start=datetime(2019, 10, 31)
+    end=datetime(2020, 10, 31)
+    feeds = PandasData1(
+            dataname=df,
+            datetime=7,  # 日期行所在列
+            open=1-1,  # 开盘价所在列
+            high=2-1,  # 最高价所在列
+            low=3-1,  # 最低价所在列           ————注意要和我们输入的dataframe是对应的
+            close=4-1,  # 收盘价价所在列
+            volume=5-1,  # 成交量所在列
+            openinterest=-1,  # 无未平仓量列.(openinterest是期货交易使用的)
+            fromdate=start,  # 起始日
+            todate=end,
+            price_range=6-1,  # 新定义 
+            pivot = 7-1
+    )
+   
+    r = stg.strategy(feeds)
+    r.rbreaker()
+    buffer = io.BytesIO()
+    Report.build_report(buffer,r)
+    buffer.seek(0)
+    # response_data = {
+    #     "pdf_data": Response(buffer.read(), content_type='application/pdf', headers={'Content-Disposition': 'attachment; filename=report.pdf'}),  # PDF内容的二进制数据
+    #     "other_data": {'log':r.log.to_json(orient="records", force_ascii=False),
+    #                    'annualreturn':r.annualreturn,
+    #                     'sharpe':r.sharperatio,
+    #                     'drawdown':r.maxdrawdown
+    #       }  # 其他数据
+    # }
+    
+    # return jsonify(response_data)
+    return Response(buffer.read(), content_type='application/pdf', headers={'Content-Disposition': 'attachment; filename=report.pdf'})
+
+@app.route('/backtrader')
+def backtest():
+    df = pd.read_csv(r'Framework\genetic algorithm\data\example.csv')
+    df['open_time'] = pd.to_datetime(df.open_time)
+    df = df.set_index('open_time')
+
+    #日内指标
+    high = df.resample('1D')['high'].max()
+    low = df.resample('1D')['low'].min()
+    close = df.resample('1D')['close'].last()
+    pivot = (high+low+close)/3
+    price_range = high - low
+    p = pivot
+    r= price_range
+
+    #获取price_range pivot
+    bins = list(r.index[1:])
+    bins.append(r.index[-1]+np.timedelta64(1,'D'))
+    labels = r.values[1:]
+    df['price_range'] = pd.cut(df.index,bins = bins,labels = labels,ordered = False,right = True).astype('float')
+
+    bins = list(p.index[1:])
+    bins.append(p.index[-1]+np.timedelta64(1,'D'))
+    labels = p.values[1:]
+    df['pivot'] = pd.cut(df.index,bins = bins,labels = labels,ordered = False,right = True).astype('float')   
+    df['open_time'] = df.index
+
+    start=datetime(2019, 10, 31)
+    end=datetime(2020, 10, 31)
+    feeds = PandasData1(
+            dataname=df,
+            datetime=7,  # 日期行所在列
+            open=1-1,  # 开盘价所在列
+            high=2-1,  # 最高价所在列
+            low=3-1,  # 最低价所在列           ————注意要和我们输入的dataframe是对应的
+            close=4-1,  # 收盘价价所在列
+            volume=5-1,  # 成交量所在列
+            openinterest=-1,  # 无未平仓量列.(openinterest是期货交易使用的)
+            fromdate=start,  # 起始日
+            todate=end,
+            price_range=6-1,  # 新定义 
+            pivot = 7-1
+    )
+   
+    r = stg.strategy(feeds)
+    r.rbreaker()
+    # response_data = {
+    #     "pdf_data": Response(buffer.read(), content_type='application/pdf', headers={'Content-Disposition': 'attachment; filename=report.pdf'}),  # PDF内容的二进制数据
+    #     "other_data": {'log':r.log.to_json(orient="records", force_ascii=False),
+    #                    'annualreturn':r.annualreturn,
+    #                     'sharpe':r.sharperatio,
+    #                     'drawdown':r.maxdrawdown
+    #       }  # 其他数据
+    # }
+    
+    # return jsonify(response_data)
+    return {'log':r.log.to_json(orient="records", force_ascii=False),
+                       'annualreturn':r.annualreturn,
+                        'sharpe':r.sharperatio,
+                        'drawdown':r.maxdrawdown
+          }
 
 
 if __name__ == '__main__':
